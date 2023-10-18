@@ -31,6 +31,28 @@
 (require 'sesman)
 (require 'eros)
 
+
+;;;
+;;; arei-connection-mode
+;;;
+
+(defvar arei-connection-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c C-s") #'sesman-map)
+    (easy-menu-define cider-repl-mode-menu map
+      "Menu for Arei's CONNECTION mode"
+      `("CONNECTION"))
+    map))
+
+(define-derived-mode arei-connection-mode fundamental-mode "kinda REPL"
+  "Major mode for Arei connection.
+
+\\{arei-connection-mode-map}"
+  ;; :keymap arei-mode-map
+  ;; (setq-local sesman-system 'Arei)
+  )
+
+
 ;;;
 ;;; arei-mode
 ;;;
@@ -82,15 +104,68 @@ variable to nil to disable the mode line entirely.")
     ;; (remove-hook 'xref-backend-functions #'arei--xref-backend 'local)
     ))
 
+
+;;;
+;;; Sessions
+;;;
+
+;; (sesman-current-sessions 'Arei)
+
+;; (defun arei-sessions ()
+;;   "Return a list of all active Arei sessions."
+;;   (sesman-sessions 'Arei))
+
+(cl-defmethod sesman-project ((_system (eql Arei)))
+  "Find project directory."
+  (project-root (project-current)))
+
+(cl-defmethod sesman-start-session ((_system (eql Arei)))
+  "Start a connection."
+  (call-interactively #'arei))
+
+(cl-defmethod sesman-quit-session ((_system (eql Arei)) session)
+  "Quit a CIDER SESSION."
+  (let ((kill-buffer-query-functions nil))
+    (kill-buffer (cadr session))))
+
+
 ;;;
 ;;; Rest
 ;;;
+
+(defun arei-connect ()
+  "Connect to remote endpoint using provided hostname and port."
+  (let* ((host "localhost")
+         (port "7888")
+         (host-and-port (concat host ":" port))
+         (project (project-current))
+         (buffer-name (concat "*arei-connection: " host-and-port "*"))
+         (session-name (concat (project-name project) ":" host-and-port)))
+    ;; (when (get-buffer name) (monroe-disconnect))
+    (message "Connecting to nREPL host on '%s:%s'..." host port)
+
+    (let* ((process (open-network-stream
+                     (concat "monroe/" host-and-port) buffer-name host port))
+           (buffer (process-buffer process)))
+      ;; (set-process-filter process 'monroe-net-filter)
+      ;; (set-process-sentinel process 'monroe-sentinel)
+      (set-process-coding-system process 'utf-8-unix 'utf-8-unix)
+      ;; (monroe-send-hello (monroe-new-session-handler (process-buffer process)))
+      (sesman-add-object 'Arei session-name buffer 'allow-new)
+      (display-buffer buffer)
+      (with-current-buffer buffer
+        (arei-connection-mode)
+        ;; (setq-local sesman-system 'Arei)
+        (setq-local default-directory (project-root (project-current)))
+        )
+      process)))
 
 ;;;###autoload
 (defun arei ()
   "Connect to nrepl server."
   (interactive)
-  (message "I'll try to connect soon"))
+  (message "I'll try to connect soon")
+  (arei-connect))
 
 ;;;###autoload
 (with-eval-after-load 'scheme
