@@ -31,6 +31,46 @@
 (require 'sesman)
 (require 'eros)
 
+(defmacro nrepl-dbind-response (response keys &rest body)
+  "Destructure an nREPL RESPONSE dict.
+Bind the value of the provided KEYS and execute BODY."
+  `(let ,(cl-loop for key in keys
+                  collect
+                  `(,key (plist-get ,response ,(intern (format ":%s" key)))))
+     ,@body))
+
+(defgroup arei nil
+  "Asynchronous Reliable Extensible IDE."
+  :prefix "arei-"
+  :group 'applications)
+
+;; (defvar arei--request-counter 0
+;;   "Serial number for message.")
+
+
+;;;
+;;; Sessions
+;;;
+
+;; (sesman-current-sessions 'Arei)
+
+;; (defun arei-sessions ()
+;;   "Return a list of all active Arei sessions."
+;;   (sesman-sessions 'Arei))
+
+(cl-defmethod sesman-project ((_system (eql Arei)))
+  "Find project directory."
+  (project-root (project-current)))
+
+(cl-defmethod sesman-start-session ((_system (eql Arei)))
+  "Start a connection."
+  (call-interactively #'arei))
+
+(cl-defmethod sesman-quit-session ((_system (eql Arei)) session)
+  "Quit a CIDER SESSION."
+  (let ((kill-buffer-query-functions nil))
+    (kill-buffer (cadr session))))
+
 
 ;;;
 ;;; arei-connection-mode
@@ -50,6 +90,148 @@
 \\{arei-connection-mode-map}"
   ;; :keymap arei-mode-map
   (setq-local sesman-system 'Arei))
+
+
+;;;
+;;; Connection
+;;;
+
+;; (require 'monroe)
+(defun arei-net-filter (process string)
+  "Called when the new message is received. Process will redirect
+all received output to this function; it will decode it and put in
+monroe-repl-buffer."
+  (with-current-buffer (process-buffer process)
+    (goto-char (point-max))
+    (insert string)
+    ;; Taken from Cider. Assure we have end of the message so
+    ;; decoding can work; to make sure we are at the real end (session
+    ;; id can contain 'e' character), we call 'accept-process-output'
+    ;; once more.
+    ;;
+    ;; This 'ignore-errors' is a hard hack here since
+    ;; 'accept-process-output' will call filter which will be this
+    ;; function causing Emacs to hit max stack size limit.
+    (ignore-errors
+        (when (eq ?e (aref string (- (length string) 1)))
+          (unless (accept-process-output process 0.01)
+            (while (> (buffer-size) 1)
+              (mapc #'monroe-dispatch (monroe-net-decode))))))))
+
+(defun arei--sentinel (process message)
+  "Called when connection is changed; in out case dropped."
+  (message "nREPL connection closed: %s" message)
+  (kill-buffer (process-buffer process)))
+
+;; TODO: [Andrew Tropin, 2023-10-19] Handle incomplete incomming string.
+;; (defun nrepl-client-filter (proc string)
+;;   "Decode message(s) from PROC contained in STRING and dispatch them."
+;;   (let ((string-q (process-get proc :string-q)))
+;;     (queue-enqueue string-q string)
+;;     ;; Start decoding only if the last letter is 'e'
+;;     (when (eq ?e (aref string (1- (length string))))
+;;       (let ((response-q (process-get proc :response-q)))
+;;         (nrepl-bdecode string-q response-q)
+;;         (while (queue-head response-q)
+;;           (with-current-buffer (process-buffer proc)
+;;             (let ((response (queue-dequeue response-q)))
+;;               (with-demoted-errors "Error in one of the `nrepl-response-handler-functions': %s"
+;;                 (run-hook-with-args 'nrepl-response-handler-functions response))
+;;               (nrepl--dispatch-response response))))))))
+
+(defun arei--dispatch-response (response)
+  "Find associated callback for a message by id or by op."
+  (nrepl-dbind-response
+   response (id)
+   (let ((callback (gethash id arei--nrepl-pending-requests)))
+      (when callback
+        (funcall callback response)))))
+
+(defun arei--server-reply (process content)
+   "Gets invoked whenever the server sends data to the client."
+   (with-current-buffer (process-buffer process)
+     (arei--dispatch-response (rail-bencode-decode content))
+     (insert (format "%s" (rail-bencode-decode content)))
+     (insert "\n")))
+
+(defun arei-connection-buffer ()
+  "Returns a connection buffer associated with the current session."
+  (cadr (sesman-current-session 'Arei)))
+
+(defun arei-connection ()
+  "Returns a process associated with the current session connection."
+  (get-buffer-process (arei-connection-buffer)))
+
+(defun arei-send-request (request callback)
+  "Send REQUEST and assign CALLBACK.
+The CALLBACK function will be called when reply is received."
+  (with-current-buffer (arei-connection-buffer)
+    (let* ((id (number-to-string (cl-incf arei--request-counter)))
+           (hash (make-hash-table :test 'equal)))
+      (puthash "id" id hash)
+      (cl-loop for (key . value) in request
+               do (puthash key value hash))
+
+      (puthash id callback arei--nrepl-pending-requests)
+      (process-send-string (arei-connection) (rail-bencode-encode hash)))))
+
+(defun arei--current-nrepl-session ()
+  (with-current-buffer (arei-connection-buffer)
+    arei--nrepl-session))
+
+(defun arei--request-eval ()
+  (arei-send-request `(("op" . "eval")
+                       ("code" . "'hello")
+                       ("session" . ,(arei--current-nrepl-session)))
+                     (lambda (response)
+                       (message "%s" response) 'hi)))
+
+(defun arei--new-session-handler ()
+  "Returns callback that is called when new connection is established."
+  (lambda (response)
+    (with-current-buffer (arei-connection-buffer)
+      (nrepl-dbind-response
+       response (id new-session)
+       (when new-session
+         (message "Connected.")
+         (setq-local arei--nrepl-session new-session)
+         (remhash id arei--nrepl-pending-requests))))))
+
+(defun arei--initialize-session ()
+  ;; TODO: [Andrew Tropin, 2023-10-19] should be syncronous
+  (arei-send-request `(("op" . "clone")) (arei--new-session-handler)))
+
+(defun arei-connect ()
+  "Connect to remote endpoint using provided hostname and port."
+  (let* ((host "localhost")
+         (port "7888")
+         (host-and-port (concat host ":" port))
+         (project (project-current))
+         (buffer-name (concat "*arei-connection: " host-and-port "*"))
+         (session-name (concat (project-name project) ":" host-and-port)))
+    (message "Connecting to nREPL host on '%s:%s'..." host port)
+
+    (let* ((process (open-network-stream
+                     (concat "nrepl-connection-" host-and-port)
+                     buffer-name host port))
+           (buffer (process-buffer process)))
+      (set-process-coding-system process 'utf-8-unix 'utf-8-unix)
+      (set-process-filter process 'arei--server-reply)
+
+      (with-current-buffer buffer
+        (arei-connection-mode)
+        (setq-local arei--request-counter 0)
+        (setq-local arei--nrepl-pending-requests (make-hash-table :test 'equal))
+        (setq-local arei--nrepl-session nil)
+        (setq-local default-directory (project-root (project-current))))
+      (set-process-sentinel process 'arei--sentinel)
+      (sesman-add-object 'Arei session-name buffer 'allow-new)
+      (arei--initialize-session)
+      ;; (process-send-string process "d2:op5:clonee")
+
+      ;; (monroe-send-hello (monroe-new-session-handler buffer))
+      (display-buffer buffer)
+      buffer)))
 
 
 ;;;
@@ -102,96 +284,6 @@ variable to nil to disable the mode line entirely.")
     ;; (remove-hook 'completion-at-point-functions #'arei-complete-at-point t)
     ;; (remove-hook 'xref-backend-functions #'arei--xref-backend 'local)
     ))
-
-
-;;;
-;;; Sessions
-;;;
-
-;; (sesman-current-sessions 'Arei)
-
-;; (defun arei-sessions ()
-;;   "Return a list of all active Arei sessions."
-;;   (sesman-sessions 'Arei))
-
-(cl-defmethod sesman-project ((_system (eql Arei)))
-  "Find project directory."
-  (project-root (project-current)))
-
-(cl-defmethod sesman-start-session ((_system (eql Arei)))
-  "Start a connection."
-  (call-interactively #'arei))
-
-(cl-defmethod sesman-quit-session ((_system (eql Arei)) session)
-  "Quit a CIDER SESSION."
-  (let ((kill-buffer-query-functions nil))
-    (kill-buffer (cadr session))))
-
-
-;;;
-;;; Rest
-;;;
-
-;; (require 'monroe)
-(defun arei-net-filter (process string)
-  "Called when the new message is received. Process will redirect
-all received output to this function; it will decode it and put in
-monroe-repl-buffer."
-  (with-current-buffer (process-buffer process)
-    (goto-char (point-max))
-    (insert string)
-    ;; Stolen from Cider. Assure we have end of the message so
-    ;; decoding can work; to make sure we are at the real end (session
-    ;; id can contain 'e' character), we call 'accept-process-output'
-    ;; once more.
-    ;;
-    ;; This 'ignore-errors' is a hard hack here since
-    ;; 'accept-process-output' will call filter which will be this
-    ;; function causing Emacs to hit max stack size limit.
-    (ignore-errors
-        (when (eq ?e (aref string (- (length string) 1)))
-          (unless (accept-process-output process 0.01)
-            (while (> (buffer-size) 1)
-              (mapc #'monroe-dispatch (monroe-net-decode))))))))
-
-(defun arei--sentinel (process message)
-  "Called when connection is changed; in out case dropped."
-  (message "nREPL connection closed: %s" message)
-  (kill-buffer (process-buffer process)))
-
-(defun arei--server-reply (process content)
-   "Gets invoked whenever the server sends data to the client."
-   (with-current-buffer (process-buffer process)
-     (insert (format "%s" (rail-bencode-decode content)))
-     (insert "\n")))
-
-(defun arei-connect ()
-  "Connect to remote endpoint using provided hostname and port."
-  (let* ((host "localhost")
-         (port "7888")
-         (host-and-port (concat host ":" port))
-         (project (project-current))
-         (buffer-name (concat "*arei-connection: " host-and-port "*"))
-         (session-name (concat (project-name project) ":" host-and-port)))
-    (message "Connecting to nREPL host on '%s:%s'..." host port)
-
-    (let* ((process (open-network-stream
-                     (concat "nrepl-connection-" host-and-port)
-                     buffer-name host port))
-           (buffer (process-buffer process)))
-      (set-process-coding-system process 'utf-8-unix 'utf-8-unix)
-      (set-process-filter process 'arei--server-reply)
-
-      (with-current-buffer buffer
-        (arei-connection-mode)
-        (setq-local default-directory (project-root (project-current))))
-      (set-process-sentinel process 'arei--sentinel)
-      (sesman-add-object 'Arei session-name buffer 'allow-new)
-      (process-send-string process "d2:op5:clonee")
-
-      ;; (monroe-send-hello (monroe-new-session-handler buffer))
-      (display-buffer buffer)
-      buffer)))
 
 ;;;###autoload
 (defun arei ()
