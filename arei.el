@@ -179,12 +179,24 @@ The CALLBACK function will be called when reply is received."
   (with-current-buffer (arei-connection-buffer)
     arei--nrepl-session))
 
-(defun arei--request-eval ()
+(defun arei--request-eval (code)
   (arei-send-request `(("op" . "eval")
-                       ("code" . "'hello")
+                       ("code" . ,code)
                        ("session" . ,(arei--current-nrepl-session)))
                      (lambda (response)
-                       (message "%s" response) 'hi)))
+                       ;; (message "%s" response)
+                       'hi)))
+
+(defun arei-evaluate-region (start end)
+  (interactive "r")
+  (arei--request-eval (buffer-substring-no-properties start end)))
+
+(defun arei-evaluate-last-sexp ()
+  (interactive)
+  (save-excursion
+    (let ((end (point)))
+      (backward-sexp)
+      (arei-evaluate-region (point) end))))
 
 (defun arei--new-session-handler ()
   "Returns callback that is called when new connection is established."
@@ -227,9 +239,6 @@ The CALLBACK function will be called when reply is received."
       (set-process-sentinel process 'arei--sentinel)
       (sesman-add-object 'Arei session-name buffer 'allow-new)
       (arei--initialize-session)
-      ;; (process-send-string process "d2:op5:clonee")
-
-      ;; (monroe-send-hello (monroe-new-session-handler buffer))
       (display-buffer buffer)
       buffer)))
 
@@ -256,10 +265,10 @@ variable to nil to disable the mode line entirely.")
 
 (defconst arei-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-x C-e") #'arei-eval-last-sexp)
-    (define-key map (kbd "C-c C-e") #'arei-eval-last-sexp)
-    (define-key map (kbd "C-c C-b") #'arei-interrupt)
-    (define-key map (kbd "C-c M-r") #'arei-restart)
+    (define-key map (kbd "C-x C-e") #'arei-evaluate-last-sexp)
+    (define-key map (kbd "C-c C-e") #'arei-evaluate-last-sexp)
+    ;; (define-key map (kbd "C-c C-b") #'arei-interrupt)
+    ;; (define-key map (kbd "C-c M-r") #'arei-restart)
     map))
 
 ;;;###autoload
@@ -298,7 +307,9 @@ variable to nil to disable the mode line entirely.")
   (define-key scheme-mode-map (kbd "C-c C-s") 'sesman-map)
   (require 'sesman)
   (sesman-install-menu scheme-mode-map)
-  (add-hook 'scheme-mode-hook (lambda () (setq-local sesman-system 'Arei))))
+  (add-hook 'scheme-mode-hook (lambda ()
+                                (arei-mode)
+                                (setq-local sesman-system 'Arei))))
 
 ;; (defun arei-eros--eval-last-sexp (result)
 ;;   "Show RESULT in EROS overlay at point."
