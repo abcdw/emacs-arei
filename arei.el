@@ -5,7 +5,7 @@
 ;; Author: Andrew Tropin <andrew@trop.in>
 ;;
 ;; URL: https://trop.in/rde
-;; Package-Requires: ((emacs "29") (spinner "1.7") (sesman "0.3.2"))
+;; Package-Requires: ((emacs "29") (eros "0.1.0") (sesman "0.3.2"))
 ;; Keywords: languages, guile, scheme, nrepl
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -23,21 +23,13 @@
 
 ;;; Commentary:
 
-;; Interface for fast navigation between hunks and easier access to various
-;; git commands.
+;; An Interactive Development Environment for Guile
 
 ;;; Code:
 
 (require 'sesman)
+(require 'arei-nrepl)
 (require 'eros)
-
-(defmacro nrepl-dbind-response (response keys &rest body)
-  "Destructure an nREPL RESPONSE dict.
-Bind the value of the provided KEYS and execute BODY."
-  `(let ,(cl-loop for key in keys
-                  collect
-                  `(,key (plist-get ,response ,(intern (format ":%s" key)))))
-     ,@body))
 
 (defgroup arei nil
   "Asynchronous Reliable Extensible IDE."
@@ -67,7 +59,7 @@ Bind the value of the provided KEYS and execute BODY."
   (call-interactively #'arei))
 
 (cl-defmethod sesman-quit-session ((_system (eql Arei)) session)
-  "Quit a CIDER SESSION."
+  "Quit an Arei SESSION."
   (let ((kill-buffer-query-functions nil))
     (kill-buffer (cadr session))))
 
@@ -76,18 +68,20 @@ Bind the value of the provided KEYS and execute BODY."
 ;;; arei-connection-mode
 ;;;
 
-(defvar arei-connection-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c C-s") #'sesman-map)
-    (easy-menu-define cider-repl-mode-menu map
-      "Menu for Arei's CONNECTION mode"
-      `("CONNECTION"))
-    map))
+;; (defvar arei-connection-mode-map
+;;   (let ((map (make-sparse-keymap)))
+;;     (define-key map (kbd "C-c C-s") #'sesman-map)
+;;     (easy-menu-define cider-repl-mode-menu map
+;;       "Menu for Arei's CONNECTION mode"
+;;       `("CONNECTION"))
+;;     map))
 
 (define-derived-mode arei-connection-mode fundamental-mode "kinda REPL"
   "Major mode for Arei connection.
 
-\\{arei-connection-mode-map}"
+"
+;; \\{arei-connection-mode-map}
+
   ;; :keymap arei-mode-map
   (setq-local sesman-system 'Arei))
 
@@ -96,63 +90,37 @@ Bind the value of the provided KEYS and execute BODY."
 ;;; Connection
 ;;;
 
-;; (require 'monroe)
-(defun arei-net-filter (process string)
-  "Called when the new message is received. Process will redirect
-all received output to this function; it will decode it and put in
-monroe-repl-buffer."
-  (with-current-buffer (process-buffer process)
-    (goto-char (point-max))
-    (insert string)
-    ;; Taken from Cider. Assure we have end of the message so
-    ;; decoding can work; to make sure we are at the real end (session
-    ;; id can contain 'e' character), we call 'accept-process-output'
-    ;; once more.
-    ;;
-    ;; This 'ignore-errors' is a hard hack here since
-    ;; 'accept-process-output' will call filter which will be this
-    ;; function causing Emacs to hit max stack size limit.
-    (ignore-errors
-        (when (eq ?e (aref string (- (length string) 1)))
-          (unless (accept-process-output process 0.01)
-            (while (> (buffer-size) 1)
-              (mapc #'monroe-dispatch (monroe-net-decode))))))))
-
 (defun arei--sentinel (process message)
   "Called when connection is changed; in out case dropped."
   (message "nREPL connection closed: %s" message)
   (kill-buffer (process-buffer process)))
 
 ;; TODO: [Andrew Tropin, 2023-10-19] Handle incomplete incomming string.
-;; (defun nrepl-client-filter (proc string)
-;;   "Decode message(s) from PROC contained in STRING and dispatch them."
-;;   (let ((string-q (process-get proc :string-q)))
-;;     (queue-enqueue string-q string)
-;;     ;; Start decoding only if the last letter is 'e'
-;;     (when (eq ?e (aref string (1- (length string))))
-;;       (let ((response-q (process-get proc :response-q)))
-;;         (nrepl-bdecode string-q response-q)
-;;         (while (queue-head response-q)
-;;           (with-current-buffer (process-buffer proc)
-;;             (let ((response (queue-dequeue response-q)))
-;;               (with-demoted-errors "Error in one of the `nrepl-response-handler-functions': %s"
-;;                 (run-hook-with-args 'nrepl-response-handler-functions response))
-;;               (nrepl--dispatch-response response))))))))
+(defun arei--connection-filter (process string)
+  "Decode message(s) from PROCESS contained in STRING and dispatch them."
+  (let ((string-q (process-get process :string-q)))
+    (queue-enqueue string-q string)
+    ;; Start decoding only if the last letter is 'e'
+    (when (eq ?e (aref string (1- (length string))))
+      (let ((response-q (process-get process :response-q)))
+        (nrepl-bdecode string-q response-q)
+        (while (queue-head response-q)
+          (with-current-buffer (process-buffer process)
+            (let ((response (queue-dequeue response-q)))
+              (goto-char (point-max))
+              (insert (format "%s\n" response))
+              ;; (with-demoted-errors
+              ;;     "Error in one of the `nrepl-response-handler-functions': %s"
+              ;;   (run-hook-with-args 'nrepl-response-handler-functions response))
+              (arei--dispatch-response response))))))))
 
 (defun arei--dispatch-response (response)
-  "Find associated callback for a message by id or by op."
+  "Find associated callback for a message by id."
   (nrepl-dbind-response
    response (id)
    (let ((callback (gethash id arei--nrepl-pending-requests)))
       (when callback
         (funcall callback response)))))
-
-(defun arei--server-reply (process content)
-   "Gets invoked whenever the server sends data to the client."
-   (with-current-buffer (process-buffer process)
-     (arei--dispatch-response (rail-bencode-decode content))
-     (insert (format "%s" (rail-bencode-decode content)))
-     (insert "\n")))
 
 (defun arei-connection-buffer ()
   "Returns a connection buffer associated with the current session."
@@ -166,26 +134,37 @@ monroe-repl-buffer."
   "Send REQUEST and assign CALLBACK.
 The CALLBACK function will be called when reply is received."
   (with-current-buffer (arei-connection-buffer)
-    (let* ((id (number-to-string (cl-incf arei--request-counter)))
-           (hash (make-hash-table :test 'equal)))
-      (puthash "id" id hash)
-      (cl-loop for (key . value) in request
-               do (puthash key value hash))
-
+    (let* ((id (number-to-string (cl-incf arei--request-counter))))
+      (nrepl-dict-put request "id" id)
+      (nrepl-dict-put request "session" (arei--current-nrepl-session))
       (puthash id callback arei--nrepl-pending-requests)
-      (process-send-string (arei-connection) (rail-bencode-encode hash)))))
+      (process-send-string nil (nrepl-bencode request)))))
 
 (defun arei--current-nrepl-session ()
   (with-current-buffer (arei-connection-buffer)
     arei--nrepl-session))
 
+(defun eros--remove-result-overlay ()
+  "Remove result overlay from current buffer.
+
+This function also removes itself from `pre-command-hook'."
+  (remove-hook 'pre-command-hook #'eros--remove-result-overlay 'local)
+  (message "last-command: %s\n" last-command)
+  (remove-overlays nil nil 'category 'result))
+
 (defun arei--request-eval (code)
-  (arei-send-request `(("op" . "eval")
-                       ("code" . ,code)
-                       ("session" . ,(arei--current-nrepl-session)))
+  (setq tmp (current-buffer))
+  (arei-send-request (nrepl-dict
+                      "op" "eval"
+                      "code" code)
                      (lambda (response)
-                       ;; (message "%s" response)
-                       'hi)))
+                       (with-current-buffer tmp
+                         (eros--make-result-overlay
+                             ;; response
+                             "hi"
+                           :format " %s"
+                           :where (point)
+                           :duration eros-eval-result-duration)))))
 
 (defun arei-evaluate-region (start end)
   (interactive "r")
@@ -201,17 +180,18 @@ The CALLBACK function will be called when reply is received."
 (defun arei--new-session-handler ()
   "Returns callback that is called when new connection is established."
   (lambda (response)
-    (with-current-buffer (arei-connection-buffer)
-      (nrepl-dbind-response
-       response (id new-session)
-       (when new-session
-         (message "Connected.")
-         (setq-local arei--nrepl-session new-session)
-         (remhash id arei--nrepl-pending-requests))))))
+    (nrepl-dbind-response
+        response (id new-session)
+      (when new-session
+        (insert ";;; Connected")
+        ;; (message "Connected.")
+        (setq-local arei--nrepl-session new-session)
+        (remhash id arei--nrepl-pending-requests)))))
 
 (defun arei--initialize-session ()
-  ;; TODO: [Andrew Tropin, 2023-10-19] should be syncronous
-  (arei-send-request `(("op" . "clone")) (arei--new-session-handler)))
+  ;; TODO: [Andrew Tropin, 2023-10-19] Probably it's better to make it
+  ;; syncronous to prevent eval requests before nrepl session created
+  (arei-send-request (nrepl-dict "op" "clone") (arei--new-session-handler)))
 
 (defun arei-connect ()
   "Connect to remote endpoint using provided hostname and port."
@@ -221,22 +201,26 @@ The CALLBACK function will be called when reply is received."
          (project (project-current))
          (buffer-name (concat "*arei-connection: " host-and-port "*"))
          (session-name (concat (project-name project) ":" host-and-port)))
-    (message "Connecting to nREPL host on '%s:%s'..." host port)
 
     (let* ((process (open-network-stream
                      (concat "nrepl-connection-" host-and-port)
                      buffer-name host port))
            (buffer (process-buffer process)))
       (set-process-coding-system process 'utf-8-unix 'utf-8-unix)
-      (set-process-filter process 'arei--server-reply)
+      (set-process-filter process 'arei--connection-filter)
+      (set-process-sentinel process 'arei--sentinel)
+      (process-put process :string-q (queue-create))
+      (process-put process :response-q (nrepl-response-queue))
 
       (with-current-buffer buffer
         (arei-connection-mode)
         (setq-local arei--request-counter 0)
         (setq-local arei--nrepl-pending-requests (make-hash-table :test 'equal))
         (setq-local arei--nrepl-session nil)
-        (setq-local default-directory (project-root (project-current))))
-      (set-process-sentinel process 'arei--sentinel)
+        (setq-local default-directory (project-root (project-current)))
+        (insert
+         (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)))
+
       (sesman-add-object 'Arei session-name buffer 'allow-new)
       (arei--initialize-session)
       (display-buffer buffer)
@@ -310,29 +294,5 @@ variable to nil to disable the mode line entirely.")
   (add-hook 'scheme-mode-hook (lambda ()
                                 (arei-mode)
                                 (setq-local sesman-system 'Arei))))
-
-;; (defun arei-eros--eval-last-sexp (result)
-;;   "Show RESULT in EROS overlay at point."
-;;   (eros--make-result-overlay
-;;    result
-;;    :format " %s"
-;;    :where (point)
-;;    :duration eros-eval-result-duration)
-;;   result)
-
-;; (define-minor-mode arei-eros-mode
-;;   "Display Scheme evaluation results overlays."
-;;   :global t
-;;   :group 'geiser
-;;   (if geiser-eros-mode
-;;       (progn
-;;         (advice-add 'monroe-eval-expression-at-point
-;;                     :filter-return #'arei-eros--eval-last-sexp))
-;;     (advice-remove 'monroe-eval-expression-at-point
-;;                    #'arei-eros--eval-last-sexp)))
-
-
-;; (message "hi")
-
 
 ;; TODO: Scratch buffer
