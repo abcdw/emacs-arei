@@ -68,19 +68,19 @@
 ;;; arei-connection-mode
 ;;;
 
-;; (defvar arei-connection-mode-map
-;;   (let ((map (make-sparse-keymap)))
-;;     (define-key map (kbd "C-c C-s") #'sesman-map)
-;;     (easy-menu-define cider-repl-mode-menu map
-;;       "Menu for Arei's CONNECTION mode"
-;;       `("CONNECTION"))
-;;     map))
+(defvar arei-connection-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c C-s") #'sesman-map)
+    (easy-menu-define cider-repl-mode-menu map
+      "Menu for Arei's CONNECTION mode"
+      `("CONNECTION"))
+    map))
 
 (define-derived-mode arei-connection-mode fundamental-mode "kinda REPL"
   "Major mode for Arei connection.
 
+\\{arei-connection-mode-map}
 "
-;; \\{arei-connection-mode-map}
 
   ;; :keymap arei-mode-map
   (setq-local sesman-system 'Arei))
@@ -108,7 +108,6 @@
           (with-current-buffer (process-buffer process)
             (let ((response (queue-dequeue response-q)))
               (goto-char (point-max))
-              (insert (format "%s\n" response))
               ;; (with-demoted-errors
               ;;     "Error in one of the `nrepl-response-handler-functions': %s"
               ;;   (run-hook-with-args 'nrepl-response-handler-functions response))
@@ -154,17 +153,42 @@ This function also removes itself from `pre-command-hook'."
 
 (defun arei--request-eval (code)
   (setq tmp (current-buffer))
-  (arei-send-request (nrepl-dict
-                      "op" "eval"
-                      "code" code)
-                     (lambda (response)
-                       (with-current-buffer tmp
-                         (eros--make-result-overlay
-                             ;; response
-                             "hi"
-                           :format " %s"
-                           :where (point)
-                           :duration eros-eval-result-duration)))))
+  (arei-send-request
+   (nrepl-dict
+    "op" "eval"
+    "code" code)
+   (lambda (response)
+     (nrepl-dbind-response response (id status value out err)
+       (when out
+         (insert out))
+       (when err
+         (insert (propertize err 'face
+                             '((t (:inherit font-lock-warning-face))))))
+       (when value
+         (insert (propertize value 'face
+                             '((t (:inherit font-lock-string-face)))))
+         (insert "\n"))
+       (when (member "done" status)
+         (with-current-buffer tmp
+           (eros--make-result-overlay
+               ;; response
+               (or value "")
+             :format (if value " => %s" " ;; interrupted")
+             :where (point)
+             :duration 2
+             ;; 'command
+             ;; eros-eval-result-duration
+             ))
+         (remhash id arei--nrepl-pending-requests))
+       ;; (message "response: %s" response)
+       ))))
+
+(defun arei-interrupt-evaluation ()
+  (interactive)
+  (arei-send-request
+   (nrepl-dict "op" "interrupt")
+   (lambda (response)
+     'hi)))
 
 (defun arei-evaluate-region (start end)
   (interactive "r")
@@ -183,10 +207,25 @@ This function also removes itself from `pre-command-hook'."
     (nrepl-dbind-response
         response (id new-session)
       (when new-session
-        (insert ";;; Connected")
+        (insert
+         (propertize
+          ";;; Connected\n"
+          'face
+          '((t (:inherit font-lock-comment-face)))))
         ;; (message "Connected.")
         (setq-local arei--nrepl-session new-session)
         (remhash id arei--nrepl-pending-requests)))))
+
+(defun arei--print-pending-requests ()
+  (interactive)
+  (with-current-buffer (arei-connection-buffer)
+      (maphash (lambda (key value)
+                 (message "Key: %s, Value: %s" key value))
+               arei--nrepl-pending-requests)))
+
+(defun arei-switch-to-connection-buffer ()
+  (interactive)
+  (pop-to-buffer (arei-connection-buffer)))
 
 (defun arei--initialize-session ()
   ;; TODO: [Andrew Tropin, 2023-10-19] Probably it's better to make it
@@ -219,7 +258,10 @@ This function also removes itself from `pre-command-hook'."
         (setq-local arei--nrepl-session nil)
         (setq-local default-directory (project-root (project-current)))
         (insert
-         (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)))
+         (propertize
+          (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)
+          'face
+          '((t (:inherit font-lock-comment-face))))))
 
       (sesman-add-object 'Arei session-name buffer 'allow-new)
       (arei--initialize-session)
@@ -251,6 +293,9 @@ variable to nil to disable the mode line entirely.")
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-x C-e") #'arei-evaluate-last-sexp)
     (define-key map (kbd "C-c C-e") #'arei-evaluate-last-sexp)
+    (define-key map (kbd "C-c C-b") #'arei-interrupt-evaluation)
+    (define-key map (kbd "C-c C-z") #'arei-switch-to-connection-buffer)
+
     ;; (define-key map (kbd "C-c C-b") #'arei-interrupt)
     ;; (define-key map (kbd "C-c M-r") #'arei-restart)
     map))
@@ -282,7 +327,6 @@ variable to nil to disable the mode line entirely.")
 (defun arei ()
   "Connect to nrepl server."
   (interactive)
-  (message "I'll try to connect soon")
   (arei-connect))
 
 ;;;###autoload
