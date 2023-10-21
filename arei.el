@@ -155,37 +155,57 @@ This function also removes itself from `pre-command-hook'."
   (remove-hook 'pre-command-hook #'eros--remove-result-overlay 'local)
   (add-hook 'post-command-hook #'eros--remove-result-overlay-real nil 'local))
 
+(defun arei--send-stdin ()
+  (arei-send-request
+   (nrepl-dict
+    "op" "stdin"
+    "stdin"
+    (condition-case nil
+        (concat (read-from-minibuffer "Stdin: " nil) "\n")
+      (quit nil)))
+   (lambda (response) 'hi)))
+
+(defun arei--process-eval-response (response)
+  (nrepl-dbind-response response (id status value out err op)
+    (goto-char (point-max))
+
+    (when (member "need-input" status)
+      (arei--send-stdin))
+
+    (when out
+      (insert out))
+    (when err
+      (insert (propertize err 'face
+                          '((t (:inherit font-lock-warning-face))))))
+    (when value
+      (unless (= 0 (current-column))
+        (insert "\n"))
+      (insert (propertize value 'face
+                          '((t (:inherit font-lock-string-face)))))
+      (insert "\n"))
+    (when (member "done" status)
+      (with-current-buffer tmp
+        (eros--make-result-overlay
+            ;; response
+            (or value "")
+          :format (if value " => %s" " ;; interrupted")
+          :where (point)
+          :duration
+          ;; 2
+          'command
+          ;; eros-eval-result-duration
+          ))
+      (remhash id arei--nrepl-pending-requests))
+    ;; (message "response: %s" response)
+    ))
+
 (defun arei--request-eval (code)
   (setq tmp (current-buffer))
   (arei-send-request
    (nrepl-dict
     "op" "eval"
     "code" code)
-   (lambda (response)
-     (nrepl-dbind-response response (id status value out err)
-       (when out
-         (insert out))
-       (when err
-         (insert (propertize err 'face
-                             '((t (:inherit font-lock-warning-face))))))
-       (when value
-         (insert (propertize value 'face
-                             '((t (:inherit font-lock-string-face)))))
-         (insert "\n"))
-       (when (member "done" status)
-         (with-current-buffer tmp
-           (eros--make-result-overlay
-               ;; response
-               (or value "")
-             :format (if value " => %s" " ;; interrupted")
-             :where (point)
-             :duration 2
-             ;; 'command
-             ;; eros-eval-result-duration
-             ))
-         (remhash id arei--nrepl-pending-requests))
-       ;; (message "response: %s" response)
-       ))))
+   #'arei--process-eval-response))
 
 (defun arei-interrupt-evaluation ()
   (interactive)
