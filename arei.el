@@ -108,6 +108,7 @@
           (with-current-buffer (process-buffer process)
             (let ((response (queue-dequeue response-q)))
               (goto-char (point-max))
+              ;; (message "response: %s\n" response)
               ;; (with-demoted-errors
               ;;     "Error in one of the `nrepl-response-handler-functions': %s"
               ;;   (run-hook-with-args 'nrepl-response-handler-functions response))
@@ -115,9 +116,8 @@
 
 (defun arei--dispatch-response (response)
   "Find associated callback for a message by id."
-  (nrepl-dbind-response
-   response (id)
-   (let ((callback (gethash id arei--nrepl-pending-requests)))
+  (nrepl-dbind-response response (id)
+    (let ((callback (gethash id arei--nrepl-pending-requests)))
       (when callback
         (funcall callback response)))))
 
@@ -135,7 +135,6 @@ The CALLBACK function will be called when reply is received."
   (with-current-buffer (arei-connection-buffer)
     (let* ((id (number-to-string (cl-incf arei--request-counter))))
       (nrepl-dict-put request "id" id)
-      (nrepl-dict-put request "session" (arei--current-nrepl-session))
       (puthash id callback arei--nrepl-pending-requests)
       (process-send-string nil (nrepl-bencode request)))))
 
@@ -156,7 +155,7 @@ This function also removes itself from `pre-command-hook'."
   (add-hook 'post-command-hook #'eros--remove-result-overlay-real nil 'local))
 
 (defun arei--send-stdin ()
-  (arei-send-request
+  (arei--send-request-with-session
    (nrepl-dict
     "op" "stdin"
     "stdin"
@@ -165,54 +164,50 @@ This function also removes itself from `pre-command-hook'."
       (quit nil)))
    (lambda (response) 'hi)))
 
-(defun arei--process-eval-response (response)
-  (nrepl-dbind-response response (id status value out err op)
-    (goto-char (point-max))
+(defun arei--process-eval-response-callback (source-buffer)
+  (lambda (response)
+    (nrepl-dbind-response response (id status value out err op)
+      (goto-char (point-max))
+      (when (member "need-input" status)
+        (arei--send-stdin))
 
-    (when (member "need-input" status)
-      (arei--send-stdin))
-
-    (when out
-      (insert out))
-    (when err
-      (insert (propertize err 'face
-                          '((t (:inherit font-lock-warning-face))))))
-    (when value
-      (unless (= 0 (current-column))
+      (when out
+        (insert out))
+      (when err
+        (insert (propertize err 'face
+                            '((t (:inherit font-lock-warning-face))))))
+      (when value
+        (unless (= 0 (current-column))
+          (insert "\n"))
+        (insert (propertize value 'face
+                            '((t (:inherit font-lock-string-face)))))
         (insert "\n"))
-      (insert (propertize value 'face
-                          '((t (:inherit font-lock-string-face)))))
-      (insert "\n"))
-    (when (member "done" status)
-      (with-current-buffer tmp
-        (eros--make-result-overlay
-            ;; response
-            (or value "")
-          :format (if value " => %s" " ;; interrupted")
-          :where (point)
-          :duration
-          ;; 2
-          'command
-          ;; eros-eval-result-duration
-          ))
-      (remhash id arei--nrepl-pending-requests))
-    ;; (message "response: %s" response)
-    ))
+      (when (member "done" status)
+        (with-current-buffer source-buffer
+          (eros--make-result-overlay
+              ;; response
+              (or value "")
+            :format (if value " => %s" " ;; interrupted")
+            :where (point)
+            :duration eros-eval-result-duration))
+        (remhash id arei--nrepl-pending-requests)))))
+
+(defun arei--send-request-with-session (request callback)
+  (nrepl-dict-put request "session" (arei--current-nrepl-session))
+  (arei-send-request request callback))
 
 (defun arei--request-eval (code)
-  (setq tmp (current-buffer))
-  (arei-send-request
+  (arei--send-request-with-session
    (nrepl-dict
     "op" "eval"
     "code" code)
-   #'arei--process-eval-response))
+   (arei--process-eval-response-callback (current-buffer))))
 
 (defun arei-interrupt-evaluation ()
   (interactive)
-  (arei-send-request
+  (arei--send-request-with-session
    (nrepl-dict "op" "interrupt")
-   (lambda (response)
-     'hi)))
+   (lambda (response) 'hi)))
 
 (defun arei-evaluate-region (start end)
   (interactive "r")
@@ -236,7 +231,7 @@ This function also removes itself from `pre-command-hook'."
           ";;; Connected\n"
           'face
           '((t (:inherit font-lock-comment-face)))))
-        ;; (message "Connected.")
+        (message "Connected to nREPL server.")
         (setq-local arei--nrepl-session new-session)
         (remhash id arei--nrepl-pending-requests)))))
 
