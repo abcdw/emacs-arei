@@ -5,7 +5,7 @@
 ;; Author: Andrew Tropin <andrew@trop.in>
 ;;
 ;; URL: https://trop.in/rde
-;; Package-Requires: ((emacs "29") (eros "0.1.0") (sesman "0.3.2"))
+;; Package-Requires: ((emacs "29") (eros "0.1.0") (sesman "0.3.2") (queue "0.2"))
 ;; Keywords: languages, guile, scheme, nrepl
 
 ;; This program is free software: you can redistribute it and/or modify

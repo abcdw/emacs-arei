@@ -29,6 +29,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'queue)
 
 (defun nrepl-dict (&rest key-vals)
   "Create nREPL dict from KEY-VALS."
@@ -63,7 +64,7 @@ return nil.  If DICT is not an nREPL dict object, an error is thrown."
   (when dict
     (if (nrepl-dict-p dict)
         (if (nrepl-dict-contains dict key)
-            (lax-plist-get (cdr dict) key)
+            (plist-get (cdr dict) key #'equal)
           default)
       (error "Not an nREPL dict object: %s" dict))))
 
@@ -74,7 +75,7 @@ Return new dict.  Dict is modified by side effects."
       `(dict ,key ,value)
     (if (not (nrepl-dict-p dict))
         (error "Not an nREPL dict object: %s" dict)
-      (setcdr dict (lax-plist-put (cdr dict) key value))
+      (setcdr dict (plist-put (cdr dict) key value #'equal))
       dict)))
 
 (defun nrepl-dict-keys (dict)
