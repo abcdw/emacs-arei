@@ -171,7 +171,8 @@ This function also removes itself from `pre-command-hook'."
       (quit nil)))
    (lambda (response) 'hi)))
 
-(defun arei--process-eval-response-callback (source-buffer)
+(defun arei--process-eval-response-callback (connection-buffer)
+  "Set up a handler for eval request responses."
   (lambda (response)
     (nrepl-dbind-response response (id status value out err op)
       (goto-char (point-max))
@@ -190,7 +191,7 @@ This function also removes itself from `pre-command-hook'."
                             '((t (:inherit font-lock-string-face)))))
         (insert "\n"))
       (when (member "done" status)
-        (with-current-buffer source-buffer
+        (with-current-buffer connection-buffer
           (eros--make-result-overlay
               ;; response
               (or value "")
