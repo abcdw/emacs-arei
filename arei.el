@@ -47,6 +47,9 @@ and responses.")
 (defvar-local arei--nrepl-pending-requests nil
   "A hash-table containing callbacks for pending requests.")
 
+(defvar-local arei--nrepl-sessions nil
+  "A hash-table containing name and session-id association.")
+
 
 ;;;
 ;;; Sessions
@@ -164,7 +167,7 @@ The CALLBACK function will be called when reply is received."
 
 (defun arei--current-nrepl-session ()
   (with-current-buffer (arei-connection-buffer)
-    arei--nrepl-session))
+    (gethash "tooling" arei--nrepl-sessions)))
 
 (defun arei--send-stdin ()
   (arei--send-request-with-session
@@ -236,20 +239,27 @@ The CALLBACK function will be called when reply is received."
       (backward-sexp)
       (arei-evaluate-region (point) end))))
 
-(defun arei--new-session-handler ()
-  "Returns callback that is called when new connection is established."
+(defun arei--new-session-handler (session-name)
+  "Returns callback that is called when new session is created."
   (lambda (response)
-    (nrepl-dbind-response
-        response (id new-session)
+    (nrepl-dbind-response response (id new-session)
       (when new-session
         (insert
          (propertize
-          ";;; Connected\n"
+          (format ";;; Session created: %s\n" session-name)
           'face
           '((t (:inherit font-lock-comment-face)))))
         (message "Connected to nREPL server.")
         (setq-local arei--nrepl-session new-session)
+        (puthash session-name new-session arei--nrepl-sessions)
         (remhash id arei--nrepl-pending-requests)))))
+
+(defun arei--create-nrepl-session (session-name &optional callback)
+  "Setups an nrepl session and register it in `arei--nrepl-sessions'."
+  (puthash session-name nil arei--nrepl-sessions)
+  (arei-send-request
+   (nrepl-dict "op" "clone")
+   (arei--new-session-handler session-name)))
 
 (defun arei--print-pending-requests ()
   (interactive)
@@ -263,9 +273,7 @@ The CALLBACK function will be called when reply is received."
   (pop-to-buffer (arei-connection-buffer)))
 
 (defun arei--initialize-session ()
-  ;; TODO: [Andrew Tropin, 2023-10-19] Probably it's better to make it
-  ;; syncronous to prevent eval requests before nrepl session created
-  (arei-send-request (nrepl-dict "op" "clone") (arei--new-session-handler)))
+  (arei--create-nrepl-session "tooling"))
 
 (defun arei-connect ()
   "Connect to remote endpoint using provided hostname and port."
@@ -286,21 +294,21 @@ The CALLBACK function will be called when reply is received."
       (process-put process :string-q (queue-create))
       (process-put process :response-q (nrepl-response-queue))
 
+      (sesman-add-object 'Arei sesman-session-name buffer 'allow-new)
+
       (with-current-buffer buffer
         (arei-connection-mode)
         (setq arei--request-counter 0)
+        (setq arei--nrepl-sessions (make-hash-table :test 'equal))
         (setq arei--nrepl-pending-requests (make-hash-table :test 'equal))
-        (setq-local arei--nrepl-session nil)
         (when (project-current)
           (setq default-directory (project-root (project-current))))
         (insert
          (propertize
           (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)
           'face
-          '((t (:inherit font-lock-comment-face))))))
-
-      (sesman-add-object 'Arei sesman-session-name buffer 'allow-new)
-      (arei--initialize-session)
+          '((t (:inherit font-lock-comment-face)))))
+        (arei--initialize-session))
       (display-buffer buffer)
       buffer)))
 
