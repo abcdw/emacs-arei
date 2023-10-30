@@ -282,10 +282,10 @@ This function also removes itself from `pre-command-hook'."
 
       (with-current-buffer buffer
         (arei-connection-mode)
-        (setq-local arei--request-counter 0)
-        (setq-local arei--nrepl-pending-requests (make-hash-table :test 'equal))
+        (setq arei--request-counter 0)
+        (setq arei--nrepl-pending-requests (make-hash-table :test 'equal))
         (setq-local arei--nrepl-session nil)
-        (setq-local default-directory (project-root (project-current)))
+        (setq default-directory (project-root (project-current)))
         (insert
          (propertize
           (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)
