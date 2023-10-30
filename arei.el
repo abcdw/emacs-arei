@@ -95,6 +95,23 @@ and responses.")
 
 
 ;;;
+;;; Overlay
+;;;
+
+(defun eros--remove-result-overlay-real ()
+  "Remove result overlay from current buffer.
+
+This function also removes itself from `pre-command-hook'."
+  (remove-hook 'post-command-hook #'eros--remove-result-overlay-real 'local)
+  (remove-overlays nil nil 'category 'result))
+
+(defun eros--remove-result-overlay ()
+  "Setup a callback to remove result overlay from current buffer."
+  (remove-hook 'pre-command-hook #'eros--remove-result-overlay 'local)
+  (add-hook 'post-command-hook #'eros--remove-result-overlay-real nil 'local))
+
+
+;;;
 ;;; Connection
 ;;;
 
@@ -148,18 +165,6 @@ The CALLBACK function will be called when reply is received."
 (defun arei--current-nrepl-session ()
   (with-current-buffer (arei-connection-buffer)
     arei--nrepl-session))
-
-(defun eros--remove-result-overlay-real ()
-  "Remove result overlay from current buffer.
-
-This function also removes itself from `pre-command-hook'."
-  (remove-hook 'post-command-hook #'eros--remove-result-overlay-real 'local)
-  (remove-overlays nil nil 'category 'result))
-
-(defun eros--remove-result-overlay ()
-  "Setup a callback to remove result overlay from current buffer."
-  (remove-hook 'pre-command-hook #'eros--remove-result-overlay 'local)
-  (add-hook 'post-command-hook #'eros--remove-result-overlay-real nil 'local))
 
 (defun arei--send-stdin ()
   (arei--send-request-with-session
