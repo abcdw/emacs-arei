@@ -268,7 +268,7 @@ This function also removes itself from `pre-command-hook'."
          (host-and-port (concat host ":" port))
          (project (project-current))
          (buffer-name (concat "*arei-connection: " host-and-port "*"))
-         (session-name (concat (project-name project) ":" host-and-port)))
+         (sesman-session-name (concat (project-name project) ":" host-and-port)))
 
     (let* ((process (open-network-stream
                      (concat "nrepl-connection-" host-and-port)
@@ -292,7 +292,7 @@ This function also removes itself from `pre-command-hook'."
           'face
           '((t (:inherit font-lock-comment-face))))))
 
-      (sesman-add-object 'Arei session-name buffer 'allow-new)
+      (sesman-add-object 'Arei sesman-session-name buffer 'allow-new)
       (arei--initialize-session)
       (display-buffer buffer)
       buffer)))
