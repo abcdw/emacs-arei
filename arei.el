@@ -36,15 +36,17 @@
   :prefix "arei-"
   :group 'applications)
 
-;; (defvar arei--request-counter 0
-;;   "Serial number for message.")
+(defvar-local arei--request-counter 0
+  "Serial number for message, used for association between request
+and responses.")
+
+(defvar-local arei--nrepl-pending-requests nil
+  "A hash-table containing callbacks for pending requests.")
 
 
 ;;;
 ;;; Sessions
 ;;;
-
-;; (sesman-current-sessions 'Arei)
 
 ;; (defun arei-sessions ()
 ;;   "Return a list of all active Arei sessions."
