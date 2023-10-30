@@ -36,6 +36,10 @@
   :prefix "arei-"
   :group 'applications)
 
+(defcustom arei-mode-auto-p t
+  "Whether `arei-mode' should be active by default in all scheme buffers."
+  :type 'boolean)
+
 (defvar-local arei--request-counter 0
   "Serial number for message, used for association between request
 and responses.")
@@ -335,7 +339,7 @@ variable to nil to disable the mode line entirely.")
   :keymap arei-mode-map
   (if arei-mode
       (progn
-        (setq-local sesman-system 'Arei)
+        (setq sesman-system 'Arei)
         ;; (arei-eldoc-setup)
         ;; (add-hook 'completion-at-point-functions #'arei-complete-at-point nil t)
         ;; (add-hook 'xref-backend-functions
@@ -347,6 +351,11 @@ variable to nil to disable the mode line entirely.")
     ;; (remove-hook 'completion-at-point-functions #'arei-complete-at-point t)
     ;; (remove-hook 'xref-backend-functions #'arei--xref-backend 'local)
     ))
+
+(defun arei-mode--maybe-activate ()
+  "Activates `arei-mode' if `arei-mode-auto-p' is t."
+  (when arei-mode-auto-p
+    (arei-mode)))
 
 ;;;###autoload
 (defun arei ()
@@ -360,8 +369,6 @@ variable to nil to disable the mode line entirely.")
   (define-key scheme-mode-map (kbd "C-c C-s") 'sesman-map)
   (require 'sesman)
   (sesman-install-menu scheme-mode-map)
-  (add-hook 'scheme-mode-hook (lambda ()
-                                (arei-mode)
-                                (setq-local sesman-system 'Arei))))
+  (add-hook 'scheme-mode-hook 'arei-mode--maybe-activate))
 
 ;; TODO: Scratch buffer
