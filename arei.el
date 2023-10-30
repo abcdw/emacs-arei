@@ -83,6 +83,8 @@
 "
 
   ;; :keymap arei-mode-map
+  ;; A smooth scrolling instead of jumping half a screen:
+  (setq-local scroll-conservatively 101)
   (setq-local sesman-system 'Arei))
 
 
@@ -107,7 +109,6 @@
         (while (queue-head response-q)
           (with-current-buffer (process-buffer process)
             (let ((response (queue-dequeue response-q)))
-              (goto-char (point-max))
               ;; (message "response: %s\n" response)
               ;; (with-demoted-errors
               ;;     "Error in one of the `nrepl-response-handler-functions': %s"
@@ -168,9 +169,9 @@ This function also removes itself from `pre-command-hook'."
   (lambda (response)
     (nrepl-dbind-response response (id status value out err op)
       (goto-char (point-max))
+
       (when (member "need-input" status)
         (arei--send-stdin))
-
       (when out
         (insert out))
       (when err
@@ -190,7 +191,10 @@ This function also removes itself from `pre-command-hook'."
             :format (if value " => %s" " ;; interrupted")
             :where (point)
             :duration eros-eval-result-duration))
-        (remhash id arei--nrepl-pending-requests)))))
+        (remhash id arei--nrepl-pending-requests))
+
+      (when (get-buffer-window)
+        (set-window-point (get-buffer-window) (buffer-size))))))
 
 (defun arei--send-request-with-session (request callback)
   (nrepl-dict-put request "session" (arei--current-nrepl-session))
