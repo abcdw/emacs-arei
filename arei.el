@@ -334,6 +334,34 @@ The CALLBACK function will be called when reply is received."
       (display-buffer buffer)
       buffer)))
 
+
+
+;;;
+;;; Completion
+;;;
+
+(defun arei--get-completion-candidate (dict)
+  (nrepl-dbind-response dict (candidate)
+    candidate))
+
+(defun arei-complete-at-point ()
+  "Function to be used for the hook 'completion-at-point-functions'."
+  (interactive)
+  (let* ((bnds (bounds-of-thing-at-point 'symbol))
+         (start (car bnds))
+         (end (cdr bnds))
+         ;; (ns (monroe-get-clojure-ns))
+         (sym (thing-at-point 'symbol))
+         (response (arei-send-sync-request
+                    (nrepl-dict "op" "completions"
+                                ;; "ns" ns
+                                "prefix" sym))))
+    (nrepl-dbind-response response (completions)
+      (when completions
+        (list start end
+              (mapcar 'arei--get-completion-candidate completions)
+              nil)))))
+
 
 ;;;
 ;;; arei-mode
@@ -378,14 +406,14 @@ variable to nil to disable the mode line entirely.")
       (progn
         (setq sesman-system 'Arei)
         ;; (arei-eldoc-setup)
-        ;; (add-hook 'completion-at-point-functions #'arei-complete-at-point nil t)
+        (add-hook 'completion-at-point-functions #'arei-complete-at-point nil t)
         ;; (add-hook 'xref-backend-functions
         ;;           #'arei--xref-backend arei-xref-fn-depth 'local)
         ;; (setq next-error-function #'arei-jump-to-compilation-error)
         )
     ;; Mode cleanup
     ;; (mapc #'kill-local-variable '(next-error-function))
-    ;; (remove-hook 'completion-at-point-functions #'arei-complete-at-point t)
+    (remove-hook 'completion-at-point-functions #'arei-complete-at-point t)
     ;; (remove-hook 'xref-backend-functions #'arei--xref-backend 'local)
     ))
 
