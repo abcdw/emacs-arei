@@ -165,6 +165,28 @@ The CALLBACK function will be called when reply is received."
       (puthash id callback arei--nrepl-pending-requests)
       (process-send-string nil (nrepl-bencode request)))))
 
+(defvar arei-nrepl-sync-timeout 5
+  "Number of seconds to wait for a sync response")
+
+(defun arei-send-sync-request (request)
+  "Send request to nREPL server synchronously."
+  (let ((time0 (current-time))
+        response
+        global-status)
+    (arei-send-request request (lambda (resp) (setq response resp)))
+    (while (not (member "done" global-status))
+      (nrepl-dbind-response response (status)
+        (setq global-status status))
+      (when (time-less-p arei-nrepl-sync-timeout
+                         (time-subtract nil time0))
+        (error "Sync nREPL request timed out %s" request))
+      (accept-process-output nil 0.01))
+    (nrepl-dbind-response response (id status)
+      (when id
+        (with-current-buffer (arei-connection-buffer)
+            (remhash id arei--nrepl-pending-requests))))
+    response))
+
 (defun arei--current-nrepl-session ()
   (with-current-buffer (arei-connection-buffer)
     (gethash "tooling" arei--nrepl-sessions)))
