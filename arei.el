@@ -341,8 +341,7 @@ The CALLBACK function will be called when reply is received."
 ;;;
 
 (defun arei--get-completion-candidate (dict)
-  (nrepl-dbind-response dict (candidate)
-    candidate))
+  (nrepl-dict-get dict "candidate"))
 
 (defun arei-complete-at-point ()
   "Function to be used for the hook 'completion-at-point-functions'."
