@@ -298,10 +298,34 @@ The CALLBACK function will be called when reply is received."
 (defun arei--initialize-session ()
   (arei--create-nrepl-session "tooling"))
 
-(defun arei-connect ()
-  "Connect to remote endpoint using provided hostname and port."
-  (let* ((host "localhost")
-         (port "7888")
+(defun arei--create-params-plist (arg)
+  "Create initial PARAMS plist based on ARG vlaue."
+  (cond ((equal arg '(4)) (list :select-endpoint t))
+        (t nil)))
+
+(defun arei--select-endpoint (params)
+  "Read HOST and PORT from minibuffer and put them into plist."
+  (let ((default-host (or (plist-get params :host) "localhost"))
+        (default-port (or (plist-get params :port) 7888)))
+    (if (plist-get params :select-endpoint)
+        (list
+         :host
+         (read-string (format "host (default %s): " default-host)
+                      nil 'arei-host default-host)
+         :port
+         (read-number "port: " default-port 'arei-port))
+      (list :host default-host :port default-port))))
+
+(defun arei-connect (arg)
+  "Connect to remote endpoint using provided :HOST and :PORT
+from PARAMS plist.  Read values from minibuffer if called
+with prefix argument."
+  (interactive "P")
+  (let* ((params (thread-first
+                   (arei--create-params-plist arg)
+                   (arei--select-endpoint)))
+         (host (plist-get params :host))
+         (port (number-to-string (plist-get params :port)))
          (host-and-port (concat host ":" port))
          (project (project-current))
          (session-prefix (if project (project-name project) (buffer-name)))
