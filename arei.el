@@ -61,7 +61,8 @@ and responses.")
 
 (cl-defmethod sesman-project ((_system (eql Arei)))
   "Find project directory."
-  (project-root (project-current)))
+  (when (project-current)
+    (project-root (project-current))))
 
 (cl-defmethod sesman-start-session ((_system (eql Arei)))
   "Start a connection."
@@ -303,8 +304,11 @@ The CALLBACK function will be called when reply is received."
          (port "7888")
          (host-and-port (concat host ":" port))
          (project (project-current))
-         (buffer-name (concat "*arei-connection: " host-and-port "*"))
-         (sesman-session-name (concat (project-name project) ":" host-and-port)))
+         (session-prefix (if project (project-name project) (buffer-name)))
+         (sesman-session-name (concat session-prefix ":" host-and-port))
+         ;; TODO: [Andrew Tropin, 2023-11-20] Handle the case when the
+         ;; buffer already exists.
+         (buffer-name (concat "*arei: " sesman-session-name "*")))
 
     (let* ((process (open-network-stream
                      (concat "nrepl-connection-" host-and-port)
@@ -425,7 +429,7 @@ variable to nil to disable the mode line entirely.")
 (defun arei ()
   "Connect to nrepl server."
   (interactive)
-  (arei-connect))
+  (call-interactively 'arei-connect))
 
 ;;;###autoload
 (with-eval-after-load 'scheme
