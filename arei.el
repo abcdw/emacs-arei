@@ -318,7 +318,10 @@ The CALLBACK function will be called when reply is received."
 
 (defun arei-switch-to-connection-buffer ()
   (interactive)
-  (pop-to-buffer (arei-connection-buffer)))
+  (if (arei-connection-buffer)
+      (pop-to-buffer (arei-connection-buffer))
+    (message "No connection associated with the buffer yet.")))
+
 (defun arei--comment-string (str)
   "Add comment-prefix to "
   (let ((lines (split-string str "\n"))
