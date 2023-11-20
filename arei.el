@@ -259,6 +259,8 @@ The CALLBACK function will be called when reply is received."
         (set-window-point (get-buffer-window) (buffer-size))))))
 
 (defun arei--send-request-with-session (request callback)
+  ;; TODO: [Andrew Tropin, 2023-11-20] Ensure that session is created
+  ;; at the moment of calling, otherwise put a request into callback.
   (nrepl-dict-put request "session" (arei--current-nrepl-session))
   (arei-send-request request callback))
 
@@ -286,6 +288,10 @@ The CALLBACK function will be called when reply is received."
       (backward-sexp)
       (arei-evaluate-region (point) end))))
 
+;; TODO: [Andrew Tropin, 2023-11-20] Add association between session
+;; and output buffer for it.  It's needed to support multiple nrepl
+;; sessions that can use separate buffers for stdin/stdout instead of
+;; using primary connection buffer.
 (defun arei--new-session-handler (session-name &optional callback)
   "Returns callback that is called when new session is created."
   (lambda (response)
@@ -518,6 +524,8 @@ variable to nil to disable the mode line entirely.")
   (define-key scheme-mode-map (kbd "C-c C-s") 'sesman-map)
   (require 'sesman)
   (sesman-install-menu scheme-mode-map)
+  ;; TODO: [Andrew Tropin, 2023-10-31] Enable arei-mode in already
+  ;; existing scheme buffers
   (add-hook 'scheme-mode-hook 'arei-mode--maybe-activate))
 
 ;; TODO: Scratch buffer
