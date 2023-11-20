@@ -36,9 +36,33 @@
   :prefix "arei-"
   :group 'applications)
 
+(defun arei--get-command-keybindings (command)
+  "Return key bindings for COMMAND as a comma-separated string."
+  (let ((keys (mapcar 'key-description (where-is-internal command nil nil t))))
+    (when keys (mapconcat 'identity keys ", "))))
+
 (defcustom arei-mode-auto-p t
   "Whether `arei-mode' should be active by default in all scheme buffers."
   :type 'boolean)
+
+(defcustom arei-get-greeting-message
+  (lambda ()
+    (apply
+     'format
+     "Commands for session and connection management:
+- `sesman-start' (%s) to connect to nrepl server.
+- `universal-argument' (%s) to select a connection endpoint (host and port).
+- `sesman-quit' (%s) to close the connection.
+
+Development related and other commands:
+- `arei-evaluate-last-sexp' (%s) to evaluate expression before point"
+     (mapcar 'arei--get-command-keybindings
+             `(sesman-start
+               sesman-quit
+               universal-argument
+               arei-evaluate-last-sexp))))
+  "A function returning a message shown on connection creation"
+  :type 'function)
 
 (defvar-local arei--request-counter 0
   "Serial number for message, used for association between request
@@ -262,7 +286,7 @@ The CALLBACK function will be called when reply is received."
       (backward-sexp)
       (arei-evaluate-region (point) end))))
 
-(defun arei--new-session-handler (session-name)
+(defun arei--new-session-handler (session-name &optional callback)
   "Returns callback that is called when new session is created."
   (lambda (response)
     (nrepl-dbind-response response (id new-session)
@@ -273,6 +297,7 @@ The CALLBACK function will be called when reply is received."
           'face
           '((t (:inherit font-lock-comment-face)))))
         (message "Connected to nREPL server.")
+        (when callback (funcall callback))
         (setq-local arei--nrepl-session new-session)
         (puthash session-name new-session arei--nrepl-sessions)
         (remhash id arei--nrepl-pending-requests)))))
@@ -282,7 +307,7 @@ The CALLBACK function will be called when reply is received."
   (puthash session-name nil arei--nrepl-sessions)
   (arei-send-request
    (nrepl-dict "op" "clone")
-   (arei--new-session-handler session-name)))
+   (arei--new-session-handler session-name callback)))
 
 (defun arei--print-pending-requests ()
   (interactive)
@@ -294,9 +319,34 @@ The CALLBACK function will be called when reply is received."
 (defun arei-switch-to-connection-buffer ()
   (interactive)
   (pop-to-buffer (arei-connection-buffer)))
+(defun arei--comment-string (str)
+  "Add comment-prefix to "
+  (let ((lines (split-string str "\n"))
+        (comment-prefix ";;")
+        (commented-lines '()))
+    (dolist (line lines)
+      (push (concat comment-prefix " " line) commented-lines))
+    (string-join (reverse commented-lines) "\n")))
 
-(defun arei--initialize-session ()
-  (arei--create-nrepl-session "tooling"))
+(defun arei--insert-greeting-message (initial-buffer)
+  "Return a closure with captured INITIAL-BUFFER, which prints
+greeting message."
+  (lambda ()
+    (insert
+     (propertize
+      (arei--comment-string
+       (with-current-buffer initial-buffer
+         (funcall arei-get-greeting-message)))
+      'face
+      '((t (:inherit font-lock-comment-face)))))
+    (insert "\n")))
+
+(defun arei--initialize-session (initial-buffer)
+  "Initialize a session, use INITIAL-BUFFER to generate a correct
+keybindings info in greeting message."
+  (arei--create-nrepl-session
+   "tooling"
+   (arei--insert-greeting-message initial-buffer)))
 
 (defun arei--create-params-plist (arg)
   "Create initial PARAMS plist based on ARG vlaue."
@@ -337,7 +387,8 @@ with prefix argument."
     (let* ((process (open-network-stream
                      (concat "nrepl-connection-" host-and-port)
                      buffer-name host port))
-           (buffer (process-buffer process)))
+           (buffer (process-buffer process))
+           (initial-buffer (current-buffer)))
       (set-process-coding-system process 'utf-8-unix 'utf-8-unix)
       (set-process-filter process 'arei--connection-filter)
       (set-process-sentinel process 'arei--sentinel)
@@ -351,14 +402,17 @@ with prefix argument."
         (setq arei--request-counter 0)
         (setq arei--nrepl-sessions (make-hash-table :test 'equal))
         (setq arei--nrepl-pending-requests (make-hash-table :test 'equal))
+        ;; Set the current working directory for the connection buffer
+        ;; to the project root.
         (when (project-current)
           (setq default-directory (project-root (project-current))))
+
         (insert
          (propertize
           (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)
           'face
           '((t (:inherit font-lock-comment-face)))))
-        (arei--initialize-session))
+        (arei--initialize-session initial-buffer))
       (display-buffer buffer)
       buffer)))
 
