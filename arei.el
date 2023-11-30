@@ -64,7 +64,7 @@ preciese way."
   (let ((keys (mapcar 'key-description (where-is-internal command nil nil t))))
     (when keys (mapconcat 'identity keys ", "))))
 
-(defcustom arei-mode-auto-p t
+(defcustom arei-mode-auto t
   "Whether `arei-mode' should be active by default in all scheme buffers."
   :type 'boolean)
 
@@ -531,8 +531,8 @@ variable to nil to disable the mode line entirely.")
     ))
 
 (defun arei-mode--maybe-activate ()
-  "Activates `arei-mode' if `arei-mode-auto-p' is t."
-  (when arei-mode-auto-p
+  "Activates `arei-mode' if `arei-mode-auto' is t."
+  (when arei-mode-auto
     (arei-mode)))
 
 ;;;###autoload
