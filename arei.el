@@ -288,11 +288,15 @@ The CALLBACK function will be called when reply is received."
   (arei-send-request request callback))
 
 (defun arei--request-eval (code)
-  (arei--send-request-with-session
-   (nrepl-dict
-    "op" "eval"
-    "code" code)
-   (arei--process-eval-response-callback (current-buffer))))
+  (let ((request (nrepl-dict
+                  "op" "eval"
+                  "code" code))
+        (module (arei--get-module)))
+    (when module
+      (nrepl-dict-put request "ns" module))
+    (arei--send-request-with-session
+     request
+     (arei--process-eval-response-callback (current-buffer)))))
 
 (defun arei-interrupt-evaluation ()
   (interactive)
