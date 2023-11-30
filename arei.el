@@ -36,6 +36,29 @@
   :prefix "arei-"
   :group 'applications)
 
+(defconst arei--module-re
+  "^[[:blank:]]*([[:blank:]\n]*define-module[[:blank:]\n]+\\(([^)]+)\\)"
+  "Regular expression matching a top-level definition of the module.")
+
+(defconst arei--library-re
+  "^[[:blank:]]*([[:blank:]\n]*\\(?:define-\\)?library[[:blank:]\n]+\\(([^)]+)\\)"
+  "Regular expression matching a top-level definition of the library.")
+
+(defun arei--get-module ()
+  "Find current buffer's module.  It goes backwards and looking for
+`arei--module-re' or `arei--library-re' to match, after that it
+goes the opposite direction.  This logic is not perfect, but
+works good enough for this amount of code.  Also, it's similar
+to geiser and cider approaches.  In the future it would be better
+to extract this information from tree-sitter or some other more
+preciese way."
+  (save-excursion
+    (when (or (re-search-backward arei--module-re nil t)
+              (re-search-backward arei--library-re nil t)
+              (re-search-forward arei--module-re nil t)
+              (re-search-forward arei--library-re nil t))
+      (match-string-no-properties 1))))
+
 (defun arei--get-command-keybindings (command)
   "Return key bindings for COMMAND as a comma-separated string."
   (let ((keys (mapcar 'key-description (where-is-internal command nil nil t))))
