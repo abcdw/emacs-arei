@@ -469,10 +469,12 @@ with prefix argument."
          (end (cdr bnds))
          ;; (ns (monroe-get-clojure-ns))
          (sym (thing-at-point 'symbol))
-         (response (arei-send-sync-request
-                    (nrepl-dict "op" "completions"
-                                ;; "ns" ns
-                                "prefix" sym))))
+         (request (nrepl-dict "op" "completions"
+                              "prefix" sym))
+         (module (arei--get-module))
+         (_ (when module
+              (nrepl-dict-put request "ns" module)))
+         (response (arei-send-sync-request request)))
     (nrepl-dbind-response response (completions)
       (when completions
         (list start end
