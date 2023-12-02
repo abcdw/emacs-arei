@@ -1,0 +1,33 @@
+# -*- mode: org -*-
+* Introduction
+Asynchronous Reliable Extensible IDE for Guile Scheme.  It's based on
+[[https://nrepl.org/nrepl/index.html][nREPL]] protocol, intended for use with [[https://git.sr.ht/~abcdw/guile-ares-rs/][guile-ares-rs]], but can be used
+as an nREPL client with other servers as well.
+
+* Usage
+1. Install [[https://git.sr.ht/~abcdw/emacs-arei][Arei]] (Guile Scheme IDE for Emacs).
+2. Install [[https://git.sr.ht/~abcdw/guile-ares-rs][Gulie Ares RS]] (an nREPL-compatible RPC server for guile).
+
+The easiest way is to create an environment with ~guix~ package manager,
+the usual approaches for installing emacs and guile packages will work
+too.
+
+~guix shell emacs emacs-arei guile-ares-rs~
+
+Run nREPL-compatible RPC server (guile-ares-rs and all your project
+sources and dependencies should be on [[https://www.gnu.org/software/guile/manual/html_node/Load-Paths.html][load path]]):
+
+~guile -c '((@ (nrepl server) run-nrepl-server) #:port 7888'~
+
+Make sure Arei package is loaded in your Emacs, open Scheme buffer and
+connect to RPC server via ~M-x sesman-start RET~, if you picked a
+different port for server, use universal argument (prefix): ~C-u M-x
+sesman-start RET~.
+
+Enjoy your meal!
+
+* Contributing
+[[https://git-send-email.io/][Send]] patches to [[https://lists.sr.ht/~abcdw/rde-devel][rde-devel]] mailing list in format:
+~[PATCH emacs-arei 0/3] SUBJECT-HERE~.
+
+[[https://man.sr.ht/lists.sr.ht/etiquette.md][Send]] feedback to [[https://lists.sr.ht/~abcdw/rde-discuss][rde-discuss]].
