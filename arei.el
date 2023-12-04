@@ -61,8 +61,11 @@ preciese way."
 
 (defun arei--get-command-keybindings (command)
   "Return key bindings for COMMAND as a comma-separated string."
-  (let ((keys (mapcar 'key-description (where-is-internal command nil nil t))))
-    (when keys (mapconcat 'identity keys ", "))))
+  (let ((keys (mapcar 'arei--key-description
+                      (where-is-internal command nil nil t))))
+    (if keys
+        (mapconcat 'identity keys ", ")
+      "M-x ... RET")))
 
 (defcustom arei-mode-auto t
   "Whether `arei-mode' should be active by default in all scheme buffers."
