@@ -536,6 +536,7 @@ variable to nil to disable the mode line entirely.")
     ;; (remove-hook 'xref-backend-functions #'arei--xref-backend 'local)
     ))
 
+;;;###autoload
 (defun arei-mode--maybe-activate ()
   "Activates `arei-mode' if `arei-mode-auto' is t."
   (when arei-mode-auto
@@ -558,3 +559,6 @@ variable to nil to disable the mode line entirely.")
   (add-hook 'scheme-mode-hook 'arei-mode--maybe-activate))
 
 ;; TODO: Scratch buffer
+
+(provide 'arei)
+;;; arei.el ends here
