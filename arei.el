@@ -82,8 +82,8 @@ Development related and other commands:
 - `arei-evaluate-sexp' (%s) to interactively evaluate the expression."
      (mapcar 'arei--get-command-keybindings
              `(sesman-start
-               sesman-quit
                universal-argument
+               sesman-quit
                arei-evaluate-last-sexp
                arei-evaluate-sexp))))
   "A function returning a message shown on connection creation"
