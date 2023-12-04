@@ -218,6 +218,7 @@ The CALLBACK function will be called when reply is received."
 
 (defun arei-send-sync-request (request)
   "Send request to nREPL server synchronously."
+  ;; TODO: handle the case, when connection is not available.
   (let ((time0 (current-time))
         response
         global-status)
@@ -318,7 +319,9 @@ The CALLBACK function will be called when reply is received."
 ;; TODO: [Andrew Tropin, 2023-11-20] Add association between session
 ;; and output buffer for it.  It's needed to support multiple nrepl
 ;; sessions that can use separate buffers for stdin/stdout instead of
-;; using primary connection buffer.
+;; using primary connection buffer.  Also, adding
+;; `arei-set-default-nrepl-session' may help for eval and switch
+;; operations.
 (defun arei--new-session-handler (session-name &optional callback)
   "Returns callback that is called when new session is created."
   (lambda (response)
@@ -349,6 +352,8 @@ The CALLBACK function will be called when reply is received."
                  (message "Key: %s, Value: %s" key value))
                arei--nrepl-pending-requests)))
 
+;; MAYBE: Rename to switch-to-nrepl-session-buffer to make sure C-c
+;; C-z jumps to buffer with needed output.
 (defun arei-switch-to-connection-buffer ()
   (interactive)
   (if (arei-connection-buffer)
