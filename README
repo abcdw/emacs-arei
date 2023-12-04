@@ -17,7 +17,7 @@ too.
 Run nREPL-compatible RPC server (guile-ares-rs and all your project
 sources and dependencies should be on [[https://www.gnu.org/software/guile/manual/html_node/Load-Paths.html][load path]]):
 
-~guile -c '((@ (nrepl server) run-nrepl-server) #:port 7888'~
+~guile -c '((@ (nrepl server) run-nrepl-server) #:port 7888)'~
 
 Make sure Arei package is loaded in your Emacs, open Scheme buffer and
 connect to RPC server via ~M-x sesman-start RET~, if you picked a
