@@ -128,7 +128,7 @@ and responses.")
 (defvar arei-connection-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-s") #'sesman-map)
-    (easy-menu-define cider-repl-mode-menu map
+    (easy-menu-define arei-connection-mode-menu map
       "Menu for Arei's CONNECTION mode"
       `("CONNECTION"))
     map))
