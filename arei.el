@@ -78,12 +78,14 @@ preciese way."
 - `sesman-quit' (%s) to close the connection.
 
 Development related and other commands:
-- `arei-evaluate-last-sexp' (%s) to evaluate expression before point"
+- `arei-evaluate-last-sexp' (%s) to evaluate expression before point.
+- `arei-evaluate-sexp' (%s) to interactively evaluate the expression."
      (mapcar 'arei--get-command-keybindings
              `(sesman-start
                sesman-quit
                universal-argument
-               arei-evaluate-last-sexp))))
+               arei-evaluate-last-sexp
+               arei-evaluate-sexp))))
   "A function returning a message shown on connection creation"
   :type 'function)
 
@@ -308,6 +310,13 @@ The CALLBACK function will be called when reply is received."
 (defun arei-evaluate-region (start end)
   (interactive "r")
   (arei--request-eval (buffer-substring-no-properties start end)))
+
+(defun arei-evaluate-sexp (exp)
+  "Evaluate EXP.  When called interactively, read an expression and
+evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
+  (interactive
+   (list (read-from-minibuffer "Expression: " nil nil nil 'arei-expression)))
+  (arei--request-eval exp))
 
 (defun arei-evaluate-last-sexp ()
   (interactive)
