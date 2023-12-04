@@ -565,6 +565,7 @@ variable to nil to disable the mode line entirely.")
   (interactive)
   (call-interactively 'arei-connect))
 
+;;;###autoload
 (defun arei--enable-on-existing-scheme-buffers ()
   "Enable Arei's minor mode on existing Scheme buffers.
 See command `arei-mode'."
