@@ -553,15 +553,27 @@ variable to nil to disable the mode line entirely.")
   (interactive)
   (call-interactively 'arei-connect))
 
+(defun arei--enable-on-existing-scheme-buffers ()
+  "Enable Arei's minor mode on existing Scheme buffers.
+See command `arei-mode'."
+  (let ((scm-buffers (seq-filter
+                      (lambda (buffer)
+                        (with-current-buffer buffer
+                          (derived-mode-p 'scheme-mode)))
+                      (buffer-list))))
+    (dolist (buffer scm-buffers)
+      (with-current-buffer buffer
+        (unless arei-mode
+          (arei-mode--maybe-activate))))))
+
 ;;;###autoload
 (with-eval-after-load 'scheme
   (define-key scheme-mode-map (kbd "C-c C-a") #'arei)
   (define-key scheme-mode-map (kbd "C-c C-s") 'sesman-map)
   (require 'sesman)
   (sesman-install-menu scheme-mode-map)
-  ;; TODO: [Andrew Tropin, 2023-10-31] Enable arei-mode in already
-  ;; existing scheme buffers
-  (add-hook 'scheme-mode-hook 'arei-mode--maybe-activate))
+  (add-hook 'scheme-mode-hook 'arei-mode--maybe-activate)
+  (arei--enable-on-existing-scheme-buffers))
 
 ;; TODO: Scratch buffer
 
