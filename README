@@ -6,6 +6,16 @@ Asynchronous Reliable Extensible IDE for Guile Scheme.  It's based on
 [[https://nrepl.org/nrepl/index.html][nREPL]] protocol, intended for use with [[https://git.sr.ht/~abcdw/guile-ares-rs/][guile-ares-rs]], but can be used
 as an nREPL client with other servers as well.
 
+At the moment Arei provides the following functionality out of the
+box:
+- Asynchronous interruptible module-aware evaluation.
+- Restartable continuations (both delimited and undelimited).
+- Proper stdout, stderr and stdin handling.
+- Exception and Backtrace pretty-printing.
+- Evaluation result tooltips.
+- Session management and buffer-project association (via [[https://github.com/vspinu/sesman][Sesman]]).
+- Module-aware completion via [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Completion-in-Buffers.html][CAPF]] (See [[https://youtu.be/fnE0lXoe7Y0][Emacs Completion Explained]]).
+
 * Usage
 1. Install [[https://git.sr.ht/~abcdw/emacs-arei][Arei]] (Guile Scheme IDE for Emacs).
 2. Install [[https://git.sr.ht/~abcdw/guile-ares-rs][Gulie Ares RS]] (an nREPL-compatible RPC server for guile).
@@ -28,10 +38,18 @@ guix shell emacs emacs-arei -- \ # line is optional, it provides Emacs and Arei
 emacs
 #+end_src
 
+*Tip*: If you have [[https://gitlab.com/emacs-geiser/geiser][geiser]] intalled and want to prevent it from
+interfering into completion (CAPF), you can set ~(setq
+geiser-mode-auto-p nil)~ in ~init.el~ or some other place.
+
 Make sure Arei package is loaded ~(require 'arei)~, open Scheme buffer
 and connect to RPC server ~M-x sesman-start RET~ (~C-c C-s C-s~), if your
 server is run on a different port, use universal argument (prefix):
 ~C-u M-x sesman-start RET~.
+
+*Tip*: There is no documentation functionality in Arei and Ares RS at
+the moment, but you can lookup documentation for most of the Guile and
+Scheme functions using ~C-h S~.
 
 Enjoy your meal!
 
