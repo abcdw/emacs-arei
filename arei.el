@@ -1,6 +1,6 @@
 ;;; arei.el --- Asynchronous Reliable Extensible IDE -*- lexical-binding:t; coding:utf-8 -*-
 
-;; Copyright © 2023 Andrew Tropin <andrew@trop.in>
+;; Copyright © 2023, 2024 Andrew Tropin <andrew@trop.in>
 
 ;; Author: Andrew Tropin <andrew@trop.in>
 ;;
@@ -328,6 +328,13 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
       (backward-sexp)
       (arei-evaluate-region (point) end))))
 
+(defun arei-evaluate-buffer ()
+  (interactive)
+  (arei--request-eval
+   (concat "(begin\n"
+           (buffer-substring-no-properties (point-min) (point-max))
+           "\n)")))
+
 ;; TODO: [Andrew Tropin, 2023-11-20] Add association between session
 ;; and output buffer for it.  It's needed to support multiple nrepl
 ;; sessions that can use separate buffers for stdin/stdout instead of
@@ -469,7 +476,6 @@ with prefix argument."
       (display-buffer buffer)
       buffer)))
 
-
 
 ;;;
 ;;; Completion
@@ -523,6 +529,7 @@ variable to nil to disable the mode line entirely.")
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-x C-e") #'arei-evaluate-last-sexp)
     (define-key map (kbd "C-c C-e") #'arei-evaluate-last-sexp)
+    (define-key map (kbd "C-c C-k") #'arei-evaluate-buffer)
     (define-key map (kbd "C-c C-b") #'arei-interrupt-evaluation)
     (define-key map (kbd "C-c C-z") #'arei-switch-to-connection-buffer)
 
