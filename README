@@ -16,6 +16,9 @@ box:
 - Session management and buffer-project association (via [[https://github.com/vspinu/sesman][Sesman]]).
 - Module-aware completion via [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Completion-in-Buffers.html][CAPF]] (See [[https://youtu.be/fnE0lXoe7Y0][Emacs Completion Explained]]).
 
+Watch a [[https://emacsconf.org/2023/talks/scheme/][talk]] from EmacsConf 2023 with more detailed explanation and
+demo of provided functionality.
+
 * Usage
 1. Install [[https://git.sr.ht/~abcdw/emacs-arei][Arei]] (Guile Scheme IDE for Emacs).
 2. Install [[https://git.sr.ht/~abcdw/guile-ares-rs][Gulie Ares RS]] (an nREPL-compatible RPC server for guile).
@@ -58,3 +61,9 @@ Enjoy your meal!
 ~[PATCH emacs-arei 0/3] SUBJECT-HERE~.
 
 [[https://man.sr.ht/lists.sr.ht/etiquette.md][Send]] feedback to [[https://lists.sr.ht/~abcdw/rde-discuss][rde-discuss]].
+
+* What people say
+- Oh hey if you're an Emacs and Scheme pervert like me, make sure to
+  check out what [[https://fosstodon.org/@abcdw][@abcdw]] has been working on
+  https://emacsconf.org/2023/talks/scheme/ it's like Geiser on that
+  drug from Limitless (2011). ([[https://fosstodon.org/@juliana@solarpunk.moe/111524855504935912][link]] to the original post).
