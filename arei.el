@@ -82,12 +82,14 @@ preciese way."
 
 Development related and other commands:
 - `arei-evaluate-last-sexp' (%s) to evaluate expression before point.
+- `arei-evaluate-buffer' (%s) to evaluate expression before point.
 - `arei-evaluate-sexp' (%s) to interactively evaluate the expression."
      (mapcar 'arei--get-command-keybindings
              `(sesman-start
                universal-argument
                sesman-quit
                arei-evaluate-last-sexp
+               arei-evaluate-buffer
                arei-evaluate-sexp))))
   "A function returning a message shown on connection creation"
   :type 'function)
