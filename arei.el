@@ -257,7 +257,7 @@ The CALLBACK function will be called when reply is received."
       (quit nil)))
    (lambda (response) 'hi)))
 
-(defun arei--process-eval-response-callback (connection-buffer)
+(defun arei--process-user-eval-response-callback (connection-buffer)
   "Set up a handler for eval request responses."
   (lambda (response)
     (nrepl-dbind-response response (id status value out err op)
@@ -289,11 +289,35 @@ The CALLBACK function will be called when reply is received."
       (when (get-buffer-window)
         (set-window-point (get-buffer-window) (buffer-size))))))
 
+(defun arei--get-evaluation-value-callback (connection-buffer)
+  "Set up a handler for eval request responses.  Ignores
+stdout/stderr, saves value to `arei-eval-value' buffer-local
+variable."
+  (lambda (response)
+    (nrepl-dbind-response response (id status value out err op)
+      (when (member "need-input" status)
+        (arei--send-stdin))
+      (setq-local arei-eval-value value)
+
+      (when (member "done" status)
+        (remhash id arei--nrepl-pending-requests)))))
+
 (defun arei--send-request-with-session (request callback)
   ;; TODO: [Andrew Tropin, 2023-11-20] Ensure that session is created
   ;; at the moment of calling, otherwise put a request into callback.
   (nrepl-dict-put request "session" (arei--current-nrepl-session))
   (arei-send-request request callback))
+
+(defun arei--request-user-eval (code)
+  (let ((request (nrepl-dict
+                  "op" "eval"
+                  "code" code))
+        (module (arei--get-module)))
+    (when module
+      (nrepl-dict-put request "ns" module))
+    (arei--send-request-with-session
+     request
+     (arei--process-user-eval-response-callback (current-buffer)))))
 
 (defun arei--request-eval (code)
   (let ((request (nrepl-dict
@@ -304,7 +328,7 @@ The CALLBACK function will be called when reply is received."
       (nrepl-dict-put request "ns" module))
     (arei--send-request-with-session
      request
-     (arei--process-eval-response-callback (current-buffer)))))
+     (arei--get-evaluation-value-callback (current-buffer)))))
 
 (defun arei-interrupt-evaluation ()
   (interactive)
@@ -314,14 +338,14 @@ The CALLBACK function will be called when reply is received."
 
 (defun arei-evaluate-region (start end)
   (interactive "r")
-  (arei--request-eval (buffer-substring-no-properties start end)))
+  (arei--request-user-eval (buffer-substring-no-properties start end)))
 
 (defun arei-evaluate-sexp (exp)
   "Evaluate EXP.  When called interactively, read an expression and
 evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
   (interactive
    (list (read-from-minibuffer "Expression: " nil nil nil 'arei-expression)))
-  (arei--request-eval exp))
+  (arei--request-user-eval exp))
 
 (defun arei-evaluate-last-sexp ()
   (interactive)
@@ -332,7 +356,7 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
 
 (defun arei-evaluate-buffer ()
   (interactive)
-  (arei--request-eval
+  (arei--request-user-eval
    (concat "(begin\n"
            (buffer-substring-no-properties (point-min) (point-max))
            "\n)")))
