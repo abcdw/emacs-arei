@@ -347,6 +347,43 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
    (list (read-from-minibuffer "Expression: " nil nil nil 'arei-expression)))
   (arei--request-user-eval exp))
 
+(defun arei--get-expression-value (exp)
+  (let ((request (nrepl-dict
+                  "op" "eval"
+                  "code" exp))
+        (module (arei--get-module)))
+    (when module
+      (nrepl-dict-put request "ns" module))
+    (nrepl-dict-put request "session" (arei--current-nrepl-session))
+    (nrepl-dbind-response (arei-send-sync-request request)
+        (id status value out err op)
+      value)))
+
+(defun arei--get-modules ()
+  (read (arei--get-expression-value
+         "(map (lambda (m) (format #f \"~a\" (module-name m)))
+     ((@@ (ares reflection modules) all-modules)))")))
+
+(defun arei--get-module-filename (module)
+  (let ((value
+         (arei--get-expression-value
+          (format "((@@ (ares reflection modules) module-filename)
+(resolve-module '%s))"
+                  module))))
+    (unless (string= value "#f")
+      (read value))))
+
+(defun arei-goto-module (module)
+  "Go to module source file if it is available."
+  (interactive
+   (list
+    (completing-read "Module: " (arei--get-modules) nil t)))
+  (let ((filename (arei--get-module-filename module)))
+    (if filename
+      (find-file filename)
+      (message "This module doesn't have corresponding filename. (Or \
+we couldn't figure it out)"))))
+
 (defun arei-evaluate-last-sexp ()
   (interactive)
   (save-excursion
