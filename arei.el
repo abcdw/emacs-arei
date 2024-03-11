@@ -31,6 +31,8 @@
 (require 'sesman)
 (require 'arei-nrepl)
 (require 'eros)
+(eval-when-compile (require 'subr-x))
+(eval-when-compile (require 'pcase))
 
 (defgroup arei nil
   "Asynchronous Reliable Extensible IDE."
@@ -308,13 +310,22 @@ variable."
   (nrepl-dict-put request "session" (arei--current-nrepl-session))
   (arei-send-request request callback))
 
-(defun arei--request-user-eval (code)
-  (let ((request (nrepl-dict
-                  "op" "eval"
-                  "code" code))
-        (module (arei--get-module)))
-    (when module
+(defun arei--request-user-eval (code &optional bounds)
+  (pcase-let* ((`(,start . ,end) bounds)
+               (code (or code
+                         (buffer-substring-no-properties start end)))
+               (request (nrepl-dict
+                         "op" "eval"
+                         "code" code
+                         "file" (buffer-file-name))))
+    (when-let ((module (arei--get-module)))
       (nrepl-dict-put request "ns" module))
+    (when-let ((line (and start (line-number-at-pos start))))
+      (nrepl-dict-put request "line" line))
+    (when-let ((column (and start (save-excursion
+                                    (goto-char start)
+                                    (current-column)))))
+      (nrepl-dict-put request "column" column))
     (arei--send-request-with-session
      request
      (arei--process-user-eval-response-callback (current-buffer)))))
@@ -338,7 +349,7 @@ variable."
 
 (defun arei-evaluate-region (start end)
   (interactive "r")
-  (arei--request-user-eval (buffer-substring-no-properties start end)))
+  (arei--request-user-eval nil (cons start end)))
 
 (defun arei-evaluate-sexp (exp)
   "Evaluate EXP.  When called interactively, read an expression and
@@ -387,16 +398,14 @@ we couldn't figure it out)"))))
 (defun arei-evaluate-last-sexp ()
   (interactive)
   (save-excursion
-    (let ((end (point)))
-      (backward-sexp)
-      (arei-evaluate-region (point) end))))
+    (let ((end (point))
+          (start (progn (backward-sexp)
+                        (point))))
+      (arei--request-user-eval nil (cons start end)))))
 
 (defun arei-evaluate-buffer ()
   (interactive)
-  (arei--request-user-eval
-   (concat "(begin\n"
-           (buffer-substring-no-properties (point-min) (point-max))
-           "\n)")))
+  (arei--request-user-eval nil (cons (point-min) (point-max))))
 
 ;; TODO: [Andrew Tropin, 2023-11-20] Add association between session
 ;; and output buffer for it.  It's needed to support multiple nrepl
