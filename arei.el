@@ -578,6 +578,44 @@ with prefix argument."
 
 
 ;;;
+;;; xref
+;;;
+
+(defun arei--xref-backend () 'arei)
+
+(defun arei--request-lookup (sym)
+  (let ((request (nrepl-dict
+                  "op" "lookup"
+                  "sym" sym)))
+    (when-let* ((module (arei--get-module)))
+      (nrepl-dict-put request "ns" module))
+    (nrepl-dict-get (arei-send-sync-request request) "info")))
+
+(defun arei--make-xref-loc (identifier)
+  (when-let* ((info (arei--request-lookup identifier))
+              (file (nrepl-dict-get info "file"))
+              (line (nrepl-dict-get info "line"))
+              (column (nrepl-dict-get info "column"))
+              (buffer (find-file-noselect file)))
+    (xref-make-buffer-location
+     buffer
+     (with-current-buffer buffer
+       (save-excursion
+         (goto-line line)
+         (move-to-column column)
+         (point))))))
+
+(cl-defmethod xref-backend-identifier-at-point ((_backend (eql arei)))
+  "Return the relevant identifier at point."
+  (when-let* ((thing (thing-at-point 'symbol)))
+    (substring-no-properties thing)))
+
+(cl-defmethod xref-backend-definitions ((_backend (eql arei)) identifier)
+  (when-let* ((loc (arei--make-xref-loc identifier)))
+    (list (xref-make identifier loc))))
+
+
+;;;
 ;;; arei-mode
 ;;;
 
@@ -622,15 +660,13 @@ variable to nil to disable the mode line entirely.")
         (setq sesman-system 'Arei)
         ;; (arei-eldoc-setup)
         (add-hook 'completion-at-point-functions #'arei-complete-at-point nil t)
-        ;; (add-hook 'xref-backend-functions
-        ;;           #'arei--xref-backend arei-xref-fn-depth 'local)
+        (add-hook 'xref-backend-functions #'arei--xref-backend nil t)
         ;; (setq next-error-function #'arei-jump-to-compilation-error)
         )
     ;; Mode cleanup
     ;; (mapc #'kill-local-variable '(next-error-function))
     (remove-hook 'completion-at-point-functions #'arei-complete-at-point t)
-    ;; (remove-hook 'xref-backend-functions #'arei--xref-backend 'local)
-    ))
+    (remove-hook 'xref-backend-functions #'arei--xref-backend t)))
 
 ;;;###autoload
 (defun arei-mode--maybe-activate ()
