@@ -320,7 +320,7 @@ variable."
                          "file" (buffer-file-name))))
     (when-let ((module (arei--get-module)))
       (nrepl-dict-put request "ns" module))
-    (when-let ((line (and start (line-number-at-pos start))))
+    (when-let ((line (and start (1- (line-number-at-pos start)))))
       (nrepl-dict-put request "line" line))
     (when-let ((column (and start (save-excursion
                                     (goto-char start)
