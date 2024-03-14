@@ -406,6 +406,13 @@ we couldn't figure it out)"))))
   (interactive)
   (arei--request-user-eval nil (cons (point-min) (point-max))))
 
+(defun arei-evaluate-defun ()
+  (interactive)
+  (save-excursion
+    (let ((end (progn (end-of-defun) (point)))
+          (start (progn (beginning-of-defun) (point))))
+      (arei--request-user-eval nil (cons start end)))))
+
 ;; TODO: [Andrew Tropin, 2023-11-20] Add association between session
 ;; and output buffer for it.  It's needed to support multiple nrepl
 ;; sessions that can use separate buffers for stdin/stdout instead of
@@ -639,7 +646,9 @@ variable to nil to disable the mode line entirely.")
   "C-c C-e" #'arei-evaluate-last-sexp
   "C-c C-k" #'arei-evaluate-buffer
   "C-c C-b" #'arei-interrupt-evaluation
-  "C-c C-z" #'arei-switch-to-connection-buffer)
+  "C-c C-z" #'arei-switch-to-connection-buffer
+  "C-M-x" #'arei-evaluate-defun
+  "C-c C-c" #'arei-evaluate-defun)
 
 ;;;###autoload
 (define-minor-mode arei-mode
