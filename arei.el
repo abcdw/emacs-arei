@@ -188,7 +188,7 @@ This function also removes itself from `pre-command-hook'."
     ;; Start decoding only if the last letter is 'e'
     (when (eq ?e (aref string (1- (length string))))
       (let ((response-q (process-get process :response-q)))
-        (nrepl-bdecode string-q response-q)
+        (arei-nrepl-bdecode string-q response-q)
         (while (queue-head response-q)
           (with-current-buffer (process-buffer process)
             (let ((response (queue-dequeue response-q)))
@@ -200,7 +200,7 @@ This function also removes itself from `pre-command-hook'."
 
 (defun arei--dispatch-response (response)
   "Find associated callback for a message by id."
-  (nrepl-dbind-response response (id)
+  (arei-nrepl-dbind-response response (id)
     (let ((callback (gethash id arei--nrepl-pending-requests)))
       (when callback
         (funcall callback response)))))
@@ -218,9 +218,9 @@ This function also removes itself from `pre-command-hook'."
 The CALLBACK function will be called when reply is received."
   (with-current-buffer (arei-connection-buffer)
     (let* ((id (number-to-string (cl-incf arei--request-counter))))
-      (nrepl-dict-put request "id" id)
+      (arei-nrepl-dict-put request "id" id)
       (puthash id callback arei--nrepl-pending-requests)
-      (process-send-string nil (nrepl-bencode request)))))
+      (process-send-string nil (arei-nrepl-bencode request)))))
 
 (defvar arei-nrepl-sync-timeout 5
   "Number of seconds to wait for a sync response")
@@ -233,13 +233,13 @@ The CALLBACK function will be called when reply is received."
         global-status)
     (arei-send-request request (lambda (resp) (setq response resp)))
     (while (not (member "done" global-status))
-      (nrepl-dbind-response response (status)
+      (arei-nrepl-dbind-response response (status)
         (setq global-status status))
       (when (time-less-p arei-nrepl-sync-timeout
                          (time-subtract nil time0))
         (error "Sync nREPL request timed out %s" request))
       (accept-process-output nil 0.01))
-    (nrepl-dbind-response response (id status)
+    (arei-nrepl-dbind-response response (id status)
       (when id
         (with-current-buffer (arei-connection-buffer)
             (remhash id arei--nrepl-pending-requests))))
@@ -251,7 +251,7 @@ The CALLBACK function will be called when reply is received."
 
 (defun arei--send-stdin ()
   (arei--send-request-with-session
-   (nrepl-dict
+   (arei-nrepl-dict
     "op" "stdin"
     "stdin"
     (condition-case nil
@@ -262,7 +262,7 @@ The CALLBACK function will be called when reply is received."
 (defun arei--process-user-eval-response-callback (connection-buffer)
   "Set up a handler for eval request responses."
   (lambda (response)
-    (nrepl-dbind-response response (id status value out err op)
+    (arei-nrepl-dbind-response response (id status value out err op)
       (goto-char (point-max))
 
       (when (member "need-input" status)
@@ -296,7 +296,7 @@ The CALLBACK function will be called when reply is received."
 stdout/stderr, saves value to `arei-eval-value' buffer-local
 variable."
   (lambda (response)
-    (nrepl-dbind-response response (id status value out err op)
+    (arei-nrepl-dbind-response response (id status value out err op)
       (when (member "need-input" status)
         (arei--send-stdin))
       (setq-local arei-eval-value value)
@@ -307,36 +307,36 @@ variable."
 (defun arei--send-request-with-session (request callback)
   ;; TODO: [Andrew Tropin, 2023-11-20] Ensure that session is created
   ;; at the moment of calling, otherwise put a request into callback.
-  (nrepl-dict-put request "session" (arei--current-nrepl-session))
+  (arei-nrepl-dict-put request "session" (arei--current-nrepl-session))
   (arei-send-request request callback))
 
 (defun arei--request-user-eval (code &optional bounds)
   (pcase-let* ((`(,start . ,end) bounds)
                (code (or code
                          (buffer-substring-no-properties start end)))
-               (request (nrepl-dict
+               (request (arei-nrepl-dict
                          "op" "eval"
                          "code" code
                          "file" (buffer-file-name))))
     (when-let ((module (arei--get-module)))
-      (nrepl-dict-put request "ns" module))
+      (arei-nrepl-dict-put request "ns" module))
     (when-let ((line (and start (1- (line-number-at-pos start)))))
-      (nrepl-dict-put request "line" line))
+      (arei-nrepl-dict-put request "line" line))
     (when-let ((column (and start (save-excursion
                                     (goto-char start)
                                     (current-column)))))
-      (nrepl-dict-put request "column" column))
+      (arei-nrepl-dict-put request "column" column))
     (arei--send-request-with-session
      request
      (arei--process-user-eval-response-callback (current-buffer)))))
 
 (defun arei--request-eval (code)
-  (let ((request (nrepl-dict
+  (let ((request (arei-nrepl-dict
                   "op" "eval"
                   "code" code))
         (module (arei--get-module)))
     (when module
-      (nrepl-dict-put request "ns" module))
+      (arei-nrepl-dict-put request "ns" module))
     (arei--send-request-with-session
      request
      (arei--get-evaluation-value-callback (current-buffer)))))
@@ -344,7 +344,7 @@ variable."
 (defun arei-interrupt-evaluation ()
   (interactive)
   (arei--send-request-with-session
-   (nrepl-dict "op" "interrupt")
+   (arei-nrepl-dict "op" "interrupt")
    (lambda (response) 'hi)))
 
 (defun arei-evaluate-region (start end)
@@ -359,14 +359,14 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
   (arei--request-user-eval exp))
 
 (defun arei--get-expression-value (exp)
-  (let ((request (nrepl-dict
+  (let ((request (arei-nrepl-dict
                   "op" "eval"
                   "code" exp))
         (module (arei--get-module)))
     (when module
-      (nrepl-dict-put request "ns" module))
-    (nrepl-dict-put request "session" (arei--current-nrepl-session))
-    (nrepl-dbind-response (arei-send-sync-request request)
+      (arei-nrepl-dict-put request "ns" module))
+    (arei-nrepl-dict-put request "session" (arei--current-nrepl-session))
+    (arei-nrepl-dbind-response (arei-send-sync-request request)
         (id status value out err op)
       value)))
 
@@ -416,7 +416,7 @@ we couldn't figure it out)"))))
 (defun arei--new-session-handler (session-name &optional callback)
   "Returns callback that is called when new session is created."
   (lambda (response)
-    (nrepl-dbind-response response (id new-session)
+    (arei-nrepl-dbind-response response (id new-session)
       (when new-session
         (insert
          (propertize
@@ -433,7 +433,7 @@ we couldn't figure it out)"))))
   "Setups an nrepl session and register it in `arei--nrepl-sessions'."
   (puthash session-name nil arei--nrepl-sessions)
   (arei-send-request
-   (nrepl-dict "op" "clone")
+   (arei-nrepl-dict "op" "clone")
    (arei--new-session-handler session-name callback)))
 
 (defun arei--print-pending-requests ()
@@ -525,7 +525,7 @@ with prefix argument."
       (set-process-filter process 'arei--connection-filter)
       (set-process-sentinel process 'arei--sentinel)
       (process-put process :string-q (queue-create))
-      (process-put process :response-q (nrepl-response-queue))
+      (process-put process :response-q (arei-nrepl-response-queue))
 
       (sesman-add-object 'Arei sesman-session-name buffer 'allow-new)
 
@@ -554,7 +554,7 @@ with prefix argument."
 ;;;
 
 (defun arei--get-completion-candidate (dict)
-  (nrepl-dict-get dict "candidate"))
+  (arei-nrepl-dict-get dict "candidate"))
 
 (defun arei-complete-at-point ()
   "Function to be used for the hook 'completion-at-point-functions'."
@@ -564,13 +564,13 @@ with prefix argument."
          (end (cdr bnds))
          ;; (ns (monroe-get-clojure-ns))
          (sym (thing-at-point 'symbol))
-         (request (nrepl-dict "op" "completions"
+         (request (arei-nrepl-dict "op" "completions"
                               "prefix" sym))
          (module (arei--get-module))
          (_ (when module
-              (nrepl-dict-put request "ns" module)))
+              (arei-nrepl-dict-put request "ns" module)))
          (response (arei-send-sync-request request)))
-    (nrepl-dbind-response response (completions)
+    (arei-nrepl-dbind-response response (completions)
       (when completions
         (list start end
               (mapcar 'arei--get-completion-candidate completions)
@@ -584,18 +584,18 @@ with prefix argument."
 (defun arei--xref-backend () 'arei)
 
 (defun arei--request-lookup (sym)
-  (let ((request (nrepl-dict
+  (let ((request (arei-nrepl-dict
                   "op" "lookup"
                   "sym" sym)))
     (when-let* ((module (arei--get-module)))
-      (nrepl-dict-put request "ns" module))
-    (nrepl-dict-get (arei-send-sync-request request) "info")))
+      (arei-nrepl-dict-put request "ns" module))
+    (arei-nrepl-dict-get (arei-send-sync-request request) "info")))
 
 (defun arei--make-xref-loc (identifier)
   (when-let* ((info (arei--request-lookup identifier))
-              (file (nrepl-dict-get info "file"))
-              (line (nrepl-dict-get info "line"))
-              (column (nrepl-dict-get info "column"))
+              (file (arei-nrepl-dict-get info "file"))
+              (line (arei-nrepl-dict-get info "line"))
+              (column (arei-nrepl-dict-get info "column"))
               (buffer (find-file-noselect file)))
     (xref-make-buffer-location
      buffer
