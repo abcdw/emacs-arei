@@ -134,13 +134,12 @@ and responses.")
 ;;; arei-connection-mode
 ;;;
 
-(defvar arei-connection-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c C-s") #'sesman-map)
-    (easy-menu-define arei-connection-mode-menu map
-      "Menu for Arei's CONNECTION mode"
-      `("CONNECTION"))
-    map))
+(defvar-keymap arei-connection-mode-map
+  "C-c C-s" #'sesman-map)
+
+(easy-menu-define arei-connection-mode-menu arei-connection-mode-map
+  "Menu for Arei's CONNECTION mode"
+  `("CONNECTION"))
 
 (define-derived-mode arei-connection-mode fundamental-mode "kinda REPL"
   "Major mode for Arei connection.
@@ -635,17 +634,12 @@ Customize this variable to change how arei mode displays its status in the
 mode line.  The default value displays the current connection.  Set this
 variable to nil to disable the mode line entirely.")
 
-(defconst arei-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-x C-e") #'arei-evaluate-last-sexp)
-    (define-key map (kbd "C-c C-e") #'arei-evaluate-last-sexp)
-    (define-key map (kbd "C-c C-k") #'arei-evaluate-buffer)
-    (define-key map (kbd "C-c C-b") #'arei-interrupt-evaluation)
-    (define-key map (kbd "C-c C-z") #'arei-switch-to-connection-buffer)
-
-    ;; (define-key map (kbd "C-c C-b") #'arei-interrupt)
-    ;; (define-key map (kbd "C-c M-r") #'arei-restart)
-    map))
+(defvar-keymap arei-mode-map
+  "C-x C-e" #'arei-evaluate-last-sexp
+  "C-c C-e" #'arei-evaluate-last-sexp
+  "C-c C-k" #'arei-evaluate-buffer
+  "C-c C-b" #'arei-interrupt-evaluation
+  "C-c C-z" #'arei-switch-to-connection-buffer)
 
 ;;;###autoload
 (define-minor-mode arei-mode
