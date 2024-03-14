@@ -258,7 +258,8 @@ The CALLBACK function will be called when reply is received."
       (quit nil)))
    (lambda (response) 'hi)))
 
-(defun arei--process-user-eval-response-callback (connection-buffer)
+(defun arei--process-user-eval-response-callback
+    (connection-buffer &optional expression-end)
   "Set up a handler for eval request responses."
   (lambda (response)
     (arei-nrepl-dbind-response response (id status value out err op)
@@ -279,12 +280,14 @@ The CALLBACK function will be called when reply is received."
         (insert "\n"))
       (when (member "done" status)
         (with-current-buffer connection-buffer
-          (eros--make-result-overlay
-              ;; response
-              (or value "")
-            :format (if value " => %s" " ;; interrupted")
-            :where (point)
-            :duration eros-eval-result-duration))
+          (let ((fmt (if value " => %s" " ;; interrupted")))
+            (unless (eros--make-result-overlay
+                        ;; response
+                        (or value "")
+                      :format fmt
+                      :where (or expression-end (point))
+                      :duration eros-eval-result-duration)
+              (message fmt value))))
         (remhash id arei--nrepl-pending-requests))
 
       (when (get-buffer-window)
@@ -327,7 +330,7 @@ variable."
       (arei-nrepl-dict-put request "column" column))
     (arei--send-request-with-session
      request
-     (arei--process-user-eval-response-callback (current-buffer)))))
+     (arei--process-user-eval-response-callback (current-buffer) end))))
 
 (defun arei--request-eval (code)
   (let ((request (arei-nrepl-dict
