@@ -375,12 +375,12 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
 (defun arei--get-modules ()
   (read (arei--get-expression-value
          "(map (lambda (m) (format #f \"~a\" (module-name m)))
-     ((@@ (ares reflection modules) all-modules)))")))
+     ((@ (ares reflection modules) all-modules)))")))
 
 (defun arei--get-module-filename (module)
   (let ((value
          (arei--get-expression-value
-          (format "((@@ (ares reflection modules) module-filename)
+          (format "((@ (ares reflection modules) module-filename)
 (resolve-module '%s))"
                   module))))
     (unless (string= value "#f")
