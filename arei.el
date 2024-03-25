@@ -326,13 +326,13 @@ variable."
                          "op" "eval"
                          "code" code
                          "file" (buffer-file-name))))
-    (when-let ((module (arei--get-module)))
+    (when-let* ((module (arei--get-module)))
       (arei-nrepl-dict-put request "ns" module))
-    (when-let ((line (and start (1- (line-number-at-pos start)))))
+    (when-let* ((line (and start (1- (line-number-at-pos start)))))
       (arei-nrepl-dict-put request "line" line))
-    (when-let ((column (and start (save-excursion
-                                    (goto-char start)
-                                    (current-column)))))
+    (when-let* ((column (and start (save-excursion
+                                     (goto-char start)
+                                     (current-column)))))
       (arei-nrepl-dict-put request "column" column))
     (arei-send-request
      request
