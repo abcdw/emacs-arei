@@ -125,6 +125,15 @@ and responses.")
   "Start a connection."
   (call-interactively #'arei))
 
+(cl-defmethod sesman-friendly-session-p ((_system (eql Arei)) session)
+  (let* ((conn (cadr session))
+         (file (buffer-file-name))
+         (load-path (thread-first
+                      (arei-nrepl-dict "op" "ares/load-path")
+                      (arei-send-sync-request conn t)
+                      (arei-nrepl-dict-get "load-path"))))
+    (seq-find (lambda (path) (string-prefix-p path file)) load-path)))
+
 (cl-defmethod sesman-quit-session ((_system (eql Arei)) session)
   "Quit an Arei SESSION."
   (let ((kill-buffer-query-functions nil))
