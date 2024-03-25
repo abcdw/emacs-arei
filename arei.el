@@ -212,11 +212,16 @@ This function also removes itself from `pre-command-hook'."
   "Returns a process associated with the current session connection."
   (get-buffer-process (arei-connection-buffer)))
 
-(defun arei-send-request (request callback)
+(defun arei-send-request (request callback &optional with-session)
   "Send REQUEST and assign CALLBACK.
 The CALLBACK function will be called when reply is received."
   (with-current-buffer (arei-connection-buffer)
     (let* ((id (number-to-string (cl-incf arei--request-counter))))
+      ;; TODO: [Andrew Tropin, 2023-11-20] Ensure that session is created
+      ;; at the moment of calling, otherwise put a request into callback.
+      (when-let* ((session (and with-session
+                                (arei--current-nrepl-session))))
+        (arei-nrepl-dict-put request "session" session))
       (arei-nrepl-dict-put request "id" id)
       (puthash id callback arei--nrepl-pending-requests)
       (process-send-string nil (arei-nrepl-bencode request)))))
@@ -224,13 +229,16 @@ The CALLBACK function will be called when reply is received."
 (defvar arei-nrepl-sync-timeout 5
   "Number of seconds to wait for a sync response")
 
-(defun arei-send-sync-request (request)
+(defun arei-send-sync-request (request &optional with-session)
   "Send request to nREPL server synchronously."
   ;; TODO: handle the case, when connection is not available.
   (let ((time0 (current-time))
         response
         global-status)
-    (arei-send-request request (lambda (resp) (setq response resp)))
+    (arei-send-request
+     request
+     (lambda (resp) (setq response resp))
+     with-session)
     (while (not (member "done" global-status))
       (arei-nrepl-dbind-response response (status)
         (setq global-status status))
@@ -249,14 +257,15 @@ The CALLBACK function will be called when reply is received."
     (gethash "tooling" arei--nrepl-sessions)))
 
 (defun arei--send-stdin ()
-  (arei--send-request-with-session
+  (arei-send-request
    (arei-nrepl-dict
     "op" "stdin"
     "stdin"
     (condition-case nil
         (concat (read-from-minibuffer "Stdin: " nil) "\n")
       (quit nil)))
-   (lambda (response) 'hi)))
+   (lambda (response) 'hi)
+   t))
 
 (defun arei--process-user-eval-response-callback
     (connection-buffer &optional expression-end)
@@ -306,12 +315,6 @@ variable."
       (when (member "done" status)
         (remhash id arei--nrepl-pending-requests)))))
 
-(defun arei--send-request-with-session (request callback)
-  ;; TODO: [Andrew Tropin, 2023-11-20] Ensure that session is created
-  ;; at the moment of calling, otherwise put a request into callback.
-  (arei-nrepl-dict-put request "session" (arei--current-nrepl-session))
-  (arei-send-request request callback))
-
 (defun arei--request-user-eval (code &optional bounds)
   (pcase-let* ((`(,start . ,end) bounds)
                (code (or code
@@ -328,9 +331,10 @@ variable."
                                     (goto-char start)
                                     (current-column)))))
       (arei-nrepl-dict-put request "column" column))
-    (arei--send-request-with-session
+    (arei-send-request
      request
-     (arei--process-user-eval-response-callback (current-buffer) end))))
+     (arei--process-user-eval-response-callback (current-buffer) end)
+     t)))
 
 (defun arei--request-eval (code)
   (let ((request (arei-nrepl-dict
@@ -339,15 +343,17 @@ variable."
         (module (arei--get-module)))
     (when module
       (arei-nrepl-dict-put request "ns" module))
-    (arei--send-request-with-session
+    (arei-send-request
      request
-     (arei--get-evaluation-value-callback (current-buffer)))))
+     (arei--get-evaluation-value-callback (current-buffer))
+     t)))
 
 (defun arei-interrupt-evaluation ()
   (interactive)
-  (arei--send-request-with-session
+  (arei-send-request
    (arei-nrepl-dict "op" "interrupt")
-   (lambda (response) 'hi)))
+   (lambda (response) 'hi)
+   t))
 
 (defun arei-evaluate-region (start end)
   (interactive "r")
@@ -367,8 +373,7 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
         (module (arei--get-module)))
     (when module
       (arei-nrepl-dict-put request "ns" module))
-    (arei-nrepl-dict-put request "session" (arei--current-nrepl-session))
-    (arei-nrepl-dbind-response (arei-send-sync-request request)
+    (arei-nrepl-dbind-response (arei-send-sync-request request t)
         (id status value out err op)
       value)))
 
