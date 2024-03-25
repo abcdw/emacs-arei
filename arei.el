@@ -212,10 +212,10 @@ This function also removes itself from `pre-command-hook'."
   "Returns a process associated with the current session connection."
   (get-buffer-process (arei-connection-buffer)))
 
-(defun arei-send-request (request callback &optional with-session)
+(defun arei-send-request (request connection callback &optional with-session)
   "Send REQUEST and assign CALLBACK.
 The CALLBACK function will be called when reply is received."
-  (with-current-buffer (arei-connection-buffer)
+  (with-current-buffer connection
     (let* ((id (number-to-string (cl-incf arei--request-counter))))
       ;; TODO: [Andrew Tropin, 2023-11-20] Ensure that session is created
       ;; at the moment of calling, otherwise put a request into callback.
@@ -229,14 +229,16 @@ The CALLBACK function will be called when reply is received."
 (defvar arei-nrepl-sync-timeout 5
   "Number of seconds to wait for a sync response")
 
-(defun arei-send-sync-request (request &optional with-session)
+(defun arei-send-sync-request (request &optional connection with-session)
   "Send request to nREPL server synchronously."
   ;; TODO: handle the case, when connection is not available.
   (let ((time0 (current-time))
+        (conn (or connection (arei-connection-buffer)))
         response
         global-status)
     (arei-send-request
      request
+     conn
      (lambda (resp) (setq response resp))
      with-session)
     (while (not (member "done" global-status))
@@ -248,15 +250,14 @@ The CALLBACK function will be called when reply is received."
       (accept-process-output nil 0.01))
     (arei-nrepl-dbind-response response (id status)
       (when id
-        (with-current-buffer (arei-connection-buffer)
+        (with-current-buffer conn
             (remhash id arei--nrepl-pending-requests))))
     response))
 
 (defun arei--current-nrepl-session ()
-  (with-current-buffer (arei-connection-buffer)
-    (gethash "tooling" arei--nrepl-sessions)))
+  (gethash "tooling" arei--nrepl-sessions))
 
-(defun arei--send-stdin ()
+(defun arei--send-stdin (&optional connection)
   (arei-send-request
    (arei-nrepl-dict
     "op" "stdin"
@@ -264,6 +265,7 @@ The CALLBACK function will be called when reply is received."
     (condition-case nil
         (concat (read-from-minibuffer "Stdin: " nil) "\n")
       (quit nil)))
+   (or connection (arei-connection-buffer))
    (lambda (response) 'hi)
    t))
 
@@ -333,10 +335,11 @@ variable."
       (arei-nrepl-dict-put request "column" column))
     (arei-send-request
      request
+     (arei-connection-buffer)
      (arei--process-user-eval-response-callback (current-buffer) end)
      t)))
 
-(defun arei--request-eval (code)
+(defun arei--request-eval (code &optional connection)
   (let ((request (arei-nrepl-dict
                   "op" "eval"
                   "code" code))
@@ -345,6 +348,7 @@ variable."
       (arei-nrepl-dict-put request "ns" module))
     (arei-send-request
      request
+     (or connection (arei-connection-buffer))
      (arei--get-evaluation-value-callback (current-buffer))
      t)))
 
@@ -352,6 +356,7 @@ variable."
   (interactive)
   (arei-send-request
    (arei-nrepl-dict "op" "interrupt")
+   (arei-connection-buffer)
    (lambda (response) 'hi)
    t))
 
@@ -366,14 +371,14 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
    (list (read-from-minibuffer "Expression: " nil nil nil 'arei-expression)))
   (arei--request-user-eval exp))
 
-(defun arei--get-expression-value (exp)
+(defun arei--get-expression-value (exp &optional connection)
   (let ((request (arei-nrepl-dict
                   "op" "eval"
                   "code" exp))
         (module (arei--get-module)))
     (when module
       (arei-nrepl-dict-put request "ns" module))
-    (arei-nrepl-dbind-response (arei-send-sync-request request t)
+    (arei-nrepl-dbind-response (arei-send-sync-request request connection t)
         (id status value out err op)
       value)))
 
@@ -443,11 +448,12 @@ we couldn't figure it out)"))))
         (puthash session-name new-session arei--nrepl-sessions)
         (remhash id arei--nrepl-pending-requests)))))
 
-(defun arei--create-nrepl-session (session-name &optional callback)
+(defun arei--create-nrepl-session (connection session-name &optional callback)
   "Setups an nrepl session and register it in `arei--nrepl-sessions'."
   (puthash session-name nil arei--nrepl-sessions)
   (arei-send-request
    (arei-nrepl-dict "op" "clone")
+   connection
    (arei--new-session-handler session-name callback)))
 
 (defun arei--print-pending-requests ()
@@ -487,10 +493,11 @@ greeting message."
       '((t (:inherit font-lock-comment-face)))))
     (insert "\n")))
 
-(defun arei--initialize-session (initial-buffer)
+(defun arei--initialize-session (connection initial-buffer)
   "Initialize a session, use INITIAL-BUFFER to generate a correct
 keybindings info in greeting message."
   (arei--create-nrepl-session
+   connection
    "tooling"
    (arei--insert-greeting-message initial-buffer)))
 
@@ -558,7 +565,7 @@ with prefix argument."
           (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)
           'face
           '((t (:inherit font-lock-comment-face)))))
-        (arei--initialize-session initial-buffer))
+        (arei--initialize-session buffer initial-buffer))
       (display-buffer buffer)
       buffer)))
 
