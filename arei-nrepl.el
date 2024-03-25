@@ -31,6 +31,7 @@
 
 (require 'cl-lib)
 (require 'queue)
+(require 'map)
 
 (defun arei-nrepl-dict (&rest key-vals)
   "Create nREPL dict from KEY-VALS."
@@ -138,14 +139,17 @@ FUNCTION should be a function taking two arguments, key and value."
           (arei-nrepl-dict-put new-map key val))))
     new-map))
 
-(defmacro arei-nrepl-dbind-response (response keys &rest body)
-  "Destructure an nREPL RESPONSE dict.
-Bind the value of the provided KEYS and execute BODY."
-  (declare (debug (form (&rest symbolp) body)))
-  `(let ,(cl-loop for key in keys
-                  collect `(,key (arei-nrepl-dict-get ,response ,(format "%s" key))))
-     ,@body))
-(put 'arei-nrepl-dbind-response 'lisp-indent-function 2)
+;; NOTE: [Nikita Domnitskii, 2024-03-21] those methods would allow us to
+;; use pcase's map patterns
+(cl-defmethod mapp ((dict (head dict)))
+  (arei-nrepl-dict-p dict))
+
+(cl-defmethod map-elt ((dict (head dict)) key &optional default _testfn)
+  (let ((key (cond
+              ((stringp key) key)
+              ((keywordp key) (substring (symbol-name key) 1))
+              ((symbolp key) (symbol-name key)))))
+    (arei-nrepl-dict-get dict key default)))
 
 
 ;;;

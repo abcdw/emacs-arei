@@ -33,6 +33,7 @@
 (require 'eros)
 (eval-when-compile (require 'subr-x))
 (eval-when-compile (require 'pcase))
+(eval-when-compile (require 'map))
 
 (defgroup arei nil
   "Asynchronous Reliable Extensible IDE."
@@ -199,10 +200,10 @@ This function also removes itself from `pre-command-hook'."
 
 (defun arei--dispatch-response (response)
   "Find associated callback for a message by id."
-  (arei-nrepl-dbind-response response (id)
-    (let ((callback (gethash id arei--nrepl-pending-requests)))
-      (when callback
-        (funcall callback response)))))
+  (when-let* ((id (arei-nrepl-dict-get response "id"))
+              (callback (gethash id arei--nrepl-pending-requests)))
+    (when callback
+      (funcall callback response))))
 
 (defun arei-connection-buffer ()
   "Returns a connection buffer associated with the current session."
@@ -242,16 +243,14 @@ The CALLBACK function will be called when reply is received."
      (lambda (resp) (setq response resp))
      with-session)
     (while (not (member "done" global-status))
-      (arei-nrepl-dbind-response response (status)
-        (setq global-status status))
+      (setq global-status (arei-nrepl-dict-get response "status"))
       (when (time-less-p arei-nrepl-sync-timeout
                          (time-subtract nil time0))
         (error "Sync nREPL request timed out %s" request))
       (accept-process-output nil 0.01))
-    (arei-nrepl-dbind-response response (id status)
-      (when id
-        (with-current-buffer conn
-            (remhash id arei--nrepl-pending-requests))))
+    (with-current-buffer conn
+      (when-let* ((id (arei-nrepl-dict-get response "id")))
+        (remhash id arei--nrepl-pending-requests)))
     response))
 
 (defun arei--current-nrepl-session ()
@@ -273,49 +272,51 @@ The CALLBACK function will be called when reply is received."
     (connection-buffer &optional expression-end)
   "Set up a handler for eval request responses."
   (lambda (response)
-    (arei-nrepl-dbind-response response (id status value out err op)
-      (goto-char (point-max))
+    (pcase response
+      ((map id status value out err)
+       (goto-char (point-max))
 
-      (when (member "need-input" status)
-        (arei--send-stdin))
-      (when out
-        (insert out))
-      (when err
-        (insert (propertize err 'face
-                            '((t (:inherit font-lock-warning-face))))))
-      (when value
-        (unless (= 0 (current-column))
-          (insert "\n"))
-        (insert (propertize value 'face
-                            '((t (:inherit font-lock-string-face)))))
-        (insert "\n"))
-      (when (member "done" status)
-        (with-current-buffer connection-buffer
-          (let ((fmt (if value " => %s" " ;; interrupted")))
-            (unless (eros--make-result-overlay
-                        ;; response
-                        (or value "")
-                      :format fmt
-                      :where (or expression-end (point))
-                      :duration eros-eval-result-duration)
-              (message fmt value))))
-        (remhash id arei--nrepl-pending-requests))
+       (when (member "need-input" status)
+         (arei--send-stdin))
+       (when out
+         (insert out))
+       (when err
+         (insert (propertize err 'face
+                             '((t (:inherit font-lock-warning-face))))))
+       (when value
+         (unless (= 0 (current-column))
+           (insert "\n"))
+         (insert (propertize value 'face
+                             '((t (:inherit font-lock-string-face)))))
+         (insert "\n"))
+       (when (member "done" status)
+         (with-current-buffer connection-buffer
+           (let ((fmt (if value " => %s" " ;; interrupted")))
+             (unless (eros--make-result-overlay
+                         ;; response
+                         (or value "")
+                       :format fmt
+                       :where (or expression-end (point))
+                       :duration eros-eval-result-duration)
+               (message fmt value))))
+         (remhash id arei--nrepl-pending-requests))
 
-      (when (get-buffer-window)
-        (set-window-point (get-buffer-window) (buffer-size))))))
+       (when (get-buffer-window)
+         (set-window-point (get-buffer-window) (buffer-size)))))))
 
 (defun arei--get-evaluation-value-callback (connection-buffer)
   "Set up a handler for eval request responses.  Ignores
 stdout/stderr, saves value to `arei-eval-value' buffer-local
 variable."
   (lambda (response)
-    (arei-nrepl-dbind-response response (id status value out err op)
-      (when (member "need-input" status)
-        (arei--send-stdin))
-      (setq-local arei-eval-value value)
+    (pcase response
+      ((map id status value)
+       (when (member "need-input" status)
+         (arei--send-stdin))
+       (setq-local arei-eval-value value)
 
-      (when (member "done" status)
-        (remhash id arei--nrepl-pending-requests)))))
+       (when (member "done" status)
+         (remhash id arei--nrepl-pending-requests))))))
 
 (defun arei--request-user-eval (code &optional bounds)
   (pcase-let* ((`(,start . ,end) bounds)
@@ -374,13 +375,13 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
 (defun arei--get-expression-value (exp &optional connection)
   (let ((request (arei-nrepl-dict
                   "op" "eval"
-                  "code" exp))
-        (module (arei--get-module)))
-    (when module
+                  "code" exp)))
+    (when-let* ((module (arei--get-module)))
       (arei-nrepl-dict-put request "ns" module))
-    (arei-nrepl-dbind-response (arei-send-sync-request request connection t)
-        (id status value out err op)
-      value)))
+    (thread-first
+      request
+      (arei-send-sync-request connection t)
+      (arei-nrepl-dict-get "value"))))
 
 (defun arei--get-modules ()
   (read (arei--get-expression-value
@@ -435,18 +436,19 @@ we couldn't figure it out)"))))
 (defun arei--new-session-handler (session-name &optional callback)
   "Returns callback that is called when new session is created."
   (lambda (response)
-    (arei-nrepl-dbind-response response (id new-session)
-      (when new-session
-        (insert
-         (propertize
-          (format ";;; Session created: %s\n" session-name)
-          'face
-          '((t (:inherit font-lock-comment-face)))))
-        (message "Connected to nREPL server.")
-        (when callback (funcall callback))
-        (setq-local arei--nrepl-session new-session)
-        (puthash session-name new-session arei--nrepl-sessions)
-        (remhash id arei--nrepl-pending-requests)))))
+    (pcase response
+      ((map id new-session)
+       (when new-session
+         (insert
+          (propertize
+           (format ";;; Session created: %s\n" session-name)
+           'face
+           '((t (:inherit font-lock-comment-face)))))
+         (message "Connected to nREPL server.")
+         (when callback (funcall callback))
+         (setq-local arei--nrepl-session new-session)
+         (puthash session-name new-session arei--nrepl-sessions)
+         (remhash id arei--nrepl-pending-requests))))))
 
 (defun arei--create-nrepl-session (connection session-name &optional callback)
   "Setups an nrepl session and register it in `arei--nrepl-sessions'."
@@ -591,11 +593,10 @@ with prefix argument."
          (_ (when module
               (arei-nrepl-dict-put request "ns" module)))
          (response (arei-send-sync-request request)))
-    (arei-nrepl-dbind-response response (completions)
-      (when completions
-        (list start end
-              (mapcar 'arei--get-completion-candidate completions)
-              nil)))))
+    (when-let* ((completions (arei-nrepl-dict-get response "completions")))
+      (list start end
+            (mapcar 'arei--get-completion-candidate completions)
+            nil))))
 
 
 ;;;
