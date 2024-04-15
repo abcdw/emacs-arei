@@ -195,7 +195,7 @@ This function also removes itself from `pre-command-hook'."
         (concat (read-from-minibuffer "Stdin: " nil) "\n")
       (quit nil)))
    (or connection (arei-connection-buffer))
-   (lambda (response) 'hi)
+   #'ignore
    t))
 
 (defun arei--process-user-eval-response-callback
@@ -234,7 +234,7 @@ This function also removes itself from `pre-command-hook'."
        (when (get-buffer-window)
          (set-window-point (get-buffer-window) (buffer-size)))))))
 
-(defun arei--get-evaluation-value-callback (connection-buffer)
+(defun arei--get-evaluation-value-callback (_connection-buffer)
   "Set up a handler for eval request responses.  Ignores
 stdout/stderr, saves value to `arei-eval-value' buffer-local
 variable."
@@ -288,7 +288,7 @@ variable."
   (arei-send-request
    (arei-nrepl-dict "op" "interrupt")
    (arei-connection-buffer)
-   (lambda (response) 'hi)
+   #'ignore
    t))
 
 (defun arei-evaluate-region (start end)

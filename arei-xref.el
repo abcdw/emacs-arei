@@ -51,7 +51,8 @@
      buffer
      (with-current-buffer buffer
        (save-excursion
-         (goto-line line)
+         (goto-char 0)
+         (forward-line (1- line))
          (move-to-column column)
          (point))))))
 
