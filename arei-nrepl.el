@@ -2,9 +2,12 @@
 
 ;; Copyright © 2012-2013 Tim King, Phil Hagelberg, Bozhidar Batsov
 ;; Copyright © 2013-2023 Bozhidar Batsov, Artur Malabarba and CIDER contributors
-;; Copyright © 2023, 2024 Andrew Tropin <andrew@trop.in>
+;; Copyright © 2023, 2024 Andrew Tropin
+;; Copyright © 2024 Nikita Domnitskii
 
 ;; Author: Andrew Tropin <andrew@trop.in>
+;;         Nikita Domnitskii <nikita@domnitskii.me>
+
 ;;
 ;; URL: https://trop.in/rde
 ;; Keywords: nrepl

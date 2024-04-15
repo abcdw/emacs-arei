@@ -1,8 +1,10 @@
 ;;; arei.el --- Asynchronous Reliable Extensible IDE -*- lexical-binding:t; coding:utf-8 -*-
 
-;; Copyright © 2023, 2024 Andrew Tropin <andrew@trop.in>
+;; Copyright © 2023, 2024 Andrew Tropin
+;; Copyright © 2024 Nikita Domnitskii
 
 ;; Author: Andrew Tropin <andrew@trop.in>
+;;         Nikita Domnitskii <nikita@domnitskii.me>
 ;;
 ;; Version: 0.9.3
 ;; Homepage: https://trop.in/rde
@@ -27,9 +29,12 @@
 ;; An Interactive Development Environment for Guile
 
 ;;; Code:
-
-(require 'sesman)
+(require 'arei-client)
 (require 'arei-nrepl)
+(require 'arei-eldoc)
+(require 'arei-xref)
+(require 'arei-completion)
+(require 'sesman)
 (require 'eros)
 (eval-when-compile (require 'subr-x))
 (eval-when-compile (require 'pcase))
@@ -39,29 +44,6 @@
   "Asynchronous Reliable Extensible IDE."
   :prefix "arei-"
   :group 'applications)
-
-(defconst arei--module-re
-  "^[[:blank:]]*([[:blank:]\n]*define-module[[:blank:]\n]+\\(([^)]+)\\)"
-  "Regular expression matching a top-level definition of the module.")
-
-(defconst arei--library-re
-  "^[[:blank:]]*([[:blank:]\n]*\\(?:define-\\)?library[[:blank:]\n]+\\(([^)]+)\\)"
-  "Regular expression matching a top-level definition of the library.")
-
-(defun arei--get-module ()
-  "Find current buffer's module.  It goes backwards and looking for
-`arei--module-re' or `arei--library-re' to match, after that it
-goes the opposite direction.  This logic is not perfect, but
-works good enough for this amount of code.  Also, it's similar
-to geiser and cider approaches.  In the future it would be better
-to extract this information from tree-sitter or some other more
-preciese way."
-  (save-excursion
-    (when (or (re-search-backward arei--module-re nil t)
-              (re-search-backward arei--library-re nil t)
-              (re-search-forward arei--module-re nil t)
-              (re-search-forward arei--library-re nil t))
-      (match-string-no-properties 1))))
 
 (defun arei--get-command-keybindings (command)
   "Return key bindings for COMMAND as a comma-separated string."
@@ -96,16 +78,6 @@ Development related and other commands:
                arei-evaluate-sexp))))
   "A function returning a message shown on connection creation"
   :type 'function)
-
-(defvar-local arei--request-counter 0
-  "Serial number for message, used for association between request
-and responses.")
-
-(defvar-local arei--nrepl-pending-requests nil
-  "A hash-table containing callbacks for pending requests.")
-
-(defvar-local arei--nrepl-sessions nil
-  "A hash-table containing name and session-id association.")
 
 
 ;;;
@@ -210,60 +182,9 @@ This function also removes itself from `pre-command-hook'."
 (defun arei--dispatch-response (response)
   "Find associated callback for a message by id."
   (when-let* ((id (arei-nrepl-dict-get response "id"))
-              (callback (gethash id arei--nrepl-pending-requests)))
+              (callback (gethash id arei-client--pending-requests)))
     (when callback
       (funcall callback response))))
-
-(defun arei-connection-buffer ()
-  "Returns a connection buffer associated with the current session."
-  (cadr (sesman-current-session 'Arei)))
-
-(defun arei-connection ()
-  "Returns a process associated with the current session connection."
-  (get-buffer-process (arei-connection-buffer)))
-
-(defun arei-send-request (request connection callback &optional with-session)
-  "Send REQUEST and assign CALLBACK.
-The CALLBACK function will be called when reply is received."
-  (with-current-buffer connection
-    (let* ((id (number-to-string (cl-incf arei--request-counter))))
-      ;; TODO: [Andrew Tropin, 2023-11-20] Ensure that session is created
-      ;; at the moment of calling, otherwise put a request into callback.
-      (when-let* ((session (and with-session
-                                (arei--current-nrepl-session))))
-        (arei-nrepl-dict-put request "session" session))
-      (arei-nrepl-dict-put request "id" id)
-      (puthash id callback arei--nrepl-pending-requests)
-      (process-send-string nil (arei-nrepl-bencode request)))))
-
-(defvar arei-nrepl-sync-timeout 5
-  "Number of seconds to wait for a sync response")
-
-(defun arei-send-sync-request (request &optional connection with-session)
-  "Send request to nREPL server synchronously."
-  ;; TODO: handle the case, when connection is not available.
-  (let ((time0 (current-time))
-        (conn (or connection (arei-connection-buffer)))
-        response
-        global-status)
-    (arei-send-request
-     request
-     conn
-     (lambda (resp) (setq response resp))
-     with-session)
-    (while (not (member "done" global-status))
-      (setq global-status (arei-nrepl-dict-get response "status"))
-      (when (time-less-p arei-nrepl-sync-timeout
-                         (time-subtract nil time0))
-        (error "Sync nREPL request timed out %s" request))
-      (accept-process-output nil 0.01))
-    (with-current-buffer conn
-      (when-let* ((id (arei-nrepl-dict-get response "id")))
-        (remhash id arei--nrepl-pending-requests)))
-    response))
-
-(defun arei--current-nrepl-session ()
-  (gethash "tooling" arei--nrepl-sessions))
 
 (defun arei--send-stdin (&optional connection)
   (arei-send-request
@@ -308,7 +229,7 @@ The CALLBACK function will be called when reply is received."
                        :where (or expression-end (point))
                        :duration eros-eval-result-duration)
                (message fmt value))))
-         (remhash id arei--nrepl-pending-requests))
+         (remhash id arei-client--pending-requests))
 
        (when (get-buffer-window)
          (set-window-point (get-buffer-window) (buffer-size)))))))
@@ -325,7 +246,7 @@ variable."
        (setq-local arei-eval-value value)
 
        (when (member "done" status)
-         (remhash id arei--nrepl-pending-requests))))))
+         (remhash id arei-client--pending-requests))))))
 
 (defun arei--request-user-eval (code &optional bounds)
   (pcase-let* ((`(,start . ,end) bounds)
@@ -335,7 +256,7 @@ variable."
                          "op" "eval"
                          "code" code
                          "file" (buffer-file-name))))
-    (when-let* ((module (arei--get-module)))
+    (when-let* ((module (arei-current-module)))
       (arei-nrepl-dict-put request "ns" module))
     (when-let* ((line (and start (1- (line-number-at-pos start)))))
       (arei-nrepl-dict-put request "line" line))
@@ -353,7 +274,7 @@ variable."
   (let ((request (arei-nrepl-dict
                   "op" "eval"
                   "code" code))
-        (module (arei--get-module)))
+        (module (arei-current-module)))
     (when module
       (arei-nrepl-dict-put request "ns" module))
     (arei-send-request
@@ -385,7 +306,7 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
   (let ((request (arei-nrepl-dict
                   "op" "eval"
                   "code" exp)))
-    (when-let* ((module (arei--get-module)))
+    (when-let* ((module (arei-current-module)))
       (arei-nrepl-dict-put request "ns" module))
     (thread-first
       request
@@ -456,12 +377,12 @@ we couldn't figure it out)"))))
          (message "Connected to nREPL server.")
          (when callback (funcall callback))
          (setq-local arei--nrepl-session new-session)
-         (puthash session-name new-session arei--nrepl-sessions)
-         (remhash id arei--nrepl-pending-requests))))))
+         (puthash session-name new-session arei-client--sessions)
+         (remhash id arei-client--pending-requests))))))
 
 (defun arei--create-nrepl-session (connection session-name &optional callback)
   "Setups an nrepl session and register it in `arei--nrepl-sessions'."
-  (puthash session-name nil arei--nrepl-sessions)
+  (puthash session-name nil arei-client--sessions)
   (arei-send-request
    (arei-nrepl-dict "op" "clone")
    connection
@@ -472,7 +393,7 @@ we couldn't figure it out)"))))
   (with-current-buffer (arei-connection-buffer)
       (maphash (lambda (key value)
                  (message "Key: %s, Value: %s" key value))
-               arei--nrepl-pending-requests)))
+               arei-client--pending-requests)))
 
 ;; MAYBE: Rename to switch-to-nrepl-session-buffer to make sure C-c
 ;; C-z jumps to buffer with needed output.
@@ -564,8 +485,8 @@ with prefix argument."
       (with-current-buffer buffer
         (arei-connection-mode)
         (setq arei--request-counter 0)
-        (setq arei--nrepl-sessions (make-hash-table :test 'equal))
-        (setq arei--nrepl-pending-requests (make-hash-table :test 'equal))
+        (setq arei-client--sessions (make-hash-table :test 'equal))
+        (setq arei-client--pending-requests (make-hash-table :test 'equal))
         ;; Set the current working directory for the connection buffer
         ;; to the project root.
         (when (project-current)
@@ -579,187 +500,6 @@ with prefix argument."
         (arei--initialize-session buffer initial-buffer))
       (display-buffer buffer)
       buffer)))
-
-
-;;;
-;;; Completion
-;;;
-
-(defun arei--get-completion-candidate (dict)
-  (arei-nrepl-dict-get dict "candidate"))
-
-(defun arei-complete-at-point ()
-  "Function to be used for the hook 'completion-at-point-functions'."
-  (interactive)
-  (let* ((bnds (bounds-of-thing-at-point 'symbol))
-         (start (car bnds))
-         (end (cdr bnds))
-         ;; (ns (monroe-get-clojure-ns))
-         (sym (thing-at-point 'symbol))
-         (request (arei-nrepl-dict "op" "completions"
-                              "prefix" sym))
-         (module (arei--get-module))
-         (_ (when module
-              (arei-nrepl-dict-put request "ns" module)))
-         (response (arei-send-sync-request request)))
-    (when-let* ((completions (arei-nrepl-dict-get response "completions")))
-      (list start end
-            (mapcar 'arei--get-completion-candidate completions)
-            nil))))
-
-
-;;;
-;;; xref
-;;;
-
-(defun arei--xref-backend () 'arei)
-
-(defun arei--request-lookup (sym)
-  (let ((request (arei-nrepl-dict
-                  "op" "lookup"
-                  "sym" sym)))
-    (when-let* ((module (arei--get-module)))
-      (arei-nrepl-dict-put request "ns" module))
-    (arei-nrepl-dict-get (arei-send-sync-request request) "info")))
-
-(defun arei--make-xref-loc (identifier)
-  (when-let* ((info (arei--request-lookup identifier))
-              (file (arei-nrepl-dict-get info "file"))
-              (line (arei-nrepl-dict-get info "line"))
-              (column (arei-nrepl-dict-get info "column"))
-              (buffer (find-file-noselect file)))
-    (xref-make-buffer-location
-     buffer
-     (with-current-buffer buffer
-       (save-excursion
-         (goto-line line)
-         (move-to-column column)
-         (point))))))
-
-(cl-defmethod xref-backend-identifier-at-point ((_backend (eql arei)))
-  "Return the relevant identifier at point."
-  (when-let* ((thing (thing-at-point 'symbol)))
-    (substring-no-properties thing)))
-
-(cl-defmethod xref-backend-definitions ((_backend (eql arei)) identifier)
-  (when-let* ((loc (arei--make-xref-loc identifier)))
-    (list (xref-make identifier loc))))
-
-
-;;;
-;;; Eldoc
-;;;
-
-(defvar arei--eldoc-last-sym nil)
-
-(defun arei-eldoc-arglist (callback)
-  "Echo procedure arguments at point by calling CALLBACK.
-Intended for ‘eldoc-documentation-functions’ (which see)."
-  (pcase (arei--eldoc-thing)
-    (`(,sym . ,pos)
-     (if (string= sym (car arei--eldoc-last-sym))
-         (arei--eldoc-display-arglists
-          sym pos (cdr arei--eldoc-last-sym) callback)
-       (let ((req (arei-nrepl-dict
-                   "op" "lookup"
-                   "sym" sym)))
-         (when-let* ((module (arei--get-module)))
-           (arei-nrepl-dict-put req "ns" module))
-         (arei-send-request
-          req
-          (arei-connection-buffer)
-          (arei--eldoc-callback sym pos callback)
-          t)
-         'wait-for-response)))))
-
-(defun arei--eldoc-callback (sym pos callback)
-  (lambda (response)
-    (when-let* ((info (arei-nrepl-dict-get response "info")))
-      (setq arei--eldoc-last-sym (cons sym info))
-      (arei--eldoc-display-arglists sym pos info callback))))
-
-(defun arei--eldoc-display-arglists (sym pos info callback)
-  (pcase info
-    ((map module arglists)
-     (funcall callback
-              (mapconcat
-               (lambda (arglist)
-                 (arei--eldoc-format-arglist arglist pos))
-               arglists
-               " | ")
-              :thing (format "%s %s" module sym)
-              :face 'font-lock-function-name-face))))
-
-(defun arei--eldoc-format-arglist (arglist pos)
-  (pcase arglist
-    ((map required optional keyword allow-other-keys? rest)
-     (let* ((arglist `(,@(when required required)
-                       ,@(when optional (cons "#:optional" optional))
-                       ,@(when keyword (cons "#:key" keyword))
-                       ,(when allow-other-keys? "#:allow-other-keys")
-                       ,@(when rest (list "." rest))))
-            (arglist (seq-remove #'null arglist))
-            (highlighted-arglist (arei--eldoc-highlight-args arglist pos)))
-       (concat "(" (string-join highlighted-arglist " ") ")")))))
-
-(defun arei--eldoc-highlight-args (arglist pos)
-  (let ((rest-pos (seq-position arglist ".")))
-    (thread-first
-      (seq-reduce (lambda (acc arg)
-                    (pcase-let (((map :idx :args) acc))
-                      (cond
-                       ((null arg) acc)
-                       ((or
-                         (string-prefix-p "#:" arg)
-                         (string= arg "."))
-                        (map-put! acc :args (cons arg args))
-                        acc)
-                       ((or (and (integerp pos)
-                                 (or (= (1+ idx) pos)
-                                     (and rest-pos
-                                          (> (1+ idx) rest-pos)
-                                          (> pos rest-pos))))
-                            (and (stringp pos) (string= arg pos)))
-                        (let ((arg (propertize arg 'face 'eldoc-highlight-function-argument)))
-                          (map-put! acc :args (cons arg args))
-                          (map-put! acc :idx (1+ idx))
-                          acc))
-                       (t
-                        (map-put! acc :args (cons arg args))
-                        (map-put! acc :idx (1+ idx))
-                        acc))))
-                  arglist
-                  (list :idx 0 :args nil))
-      (map-elt :args)
-      (seq-reverse))))
-
-(defun arei--eldoc-thing ()
-  (save-excursion
-    (when-let* ((pos (arei--beginning-of-sexp))
-                (thing (thing-at-point 'symbol t)))
-      (cons thing pos))))
-
-(defun arei--beginning-of-sexp ()
-  (let ((parse-sexp-ignore-comments t))
-    (named-let lp ((key (when-let* ((key (thing-at-point 'sexp t))
-                                    ((string-prefix-p "#:" key)))
-                          (substring key 2)))
-                   (pos (or (ignore-errors
-                              (let ((p (point)))
-                                (forward-sexp -1)
-                                (forward-sexp 1)
-                                (when (< (point) p) 1)))
-                            0)))
-      (let ((p (point)))
-        (ignore-errors (forward-sexp -1))
-        (cond
-         ((and (null key)
-               (string-prefix-p "#:" (thing-at-point 'sexp t)))
-          (lp (substring (thing-at-point 'sexp t) 2) pos))
-         ((< (point) p)
-          (lp key (1+ pos)))
-         (t
-          (or key (max 0 (1- pos)))))))))
 
 
 ;;;
