@@ -581,8 +581,8 @@ See command `arei-mode'."
 
 ;;;###autoload
 (with-eval-after-load 'scheme
-  (define-key scheme-mode-map (kbd "C-c C-a") #'arei)
-  (define-key scheme-mode-map (kbd "C-c C-s") 'sesman-map)
+  (keymap-set scheme-mode-map "C-c C-a" #'arei)
+  (keymap-set scheme-mode-map "C-c C-s" 'sesman-map)
   (require 'sesman)
   (sesman-install-menu scheme-mode-map)
   (add-hook 'scheme-mode-hook 'arei-mode--maybe-activate)
