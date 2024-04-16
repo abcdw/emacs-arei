@@ -123,7 +123,7 @@
 
 (defun arei-eldoc-arglist (callback)
   "Echo procedure arguments at point by calling CALLBACK.
-Intended for ‘eldoc-documentation-functions’ (which see)."
+Intended for `eldoc-documentation-functions' (which see)."
   (pcase (arei-eldoc--thing)
     (`(,sym . ,pos)
      (if (string= sym (car arei-eldoc--last-sym))

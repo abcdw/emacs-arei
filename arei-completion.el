@@ -34,7 +34,7 @@
   (arei-nrepl-dict-get dict "candidate"))
 
 (defun arei-complete-at-point ()
-  "Function to be used for the hook ‘completion-at-point-functions’."
+  "Function to be used for the hook `completion-at-point-functions'."
   (interactive)
   (let* ((bnds (bounds-of-thing-at-point 'symbol))
          (start (car bnds))
