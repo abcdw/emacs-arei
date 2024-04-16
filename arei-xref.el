@@ -58,8 +58,7 @@
 
 (cl-defmethod xref-backend-identifier-at-point ((_backend (eql arei)))
   "Return the relevant identifier at point."
-  (when-let* ((thing (thing-at-point 'symbol)))
-    (substring-no-properties thing)))
+  (thing-at-point 'symbol t))
 
 (cl-defmethod xref-backend-definitions ((_backend (eql arei)) identifier)
   (when (arei-connected-p)
