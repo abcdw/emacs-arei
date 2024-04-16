@@ -29,9 +29,25 @@
 
 (require 'arei-client)
 (require 'arei-nrepl)
+(eval-when-compile (require 'map))
+(eval-when-compile (require 'pcase))
 
 (defun arei--get-completion-candidate (dict)
-  (arei-nrepl-dict-get dict "candidate"))
+  (pcase dict
+    ((map candidate type ns)
+     (when ns (put-text-property 0 1 'ns ns candidate))
+     (when type (put-text-property 0 1 'type type candidate))
+     candidate)))
+
+(defun arei--annotate-symbol (symbol)
+  (let ((ns (get-text-property 0 'ns symbol))
+        (type (get-text-property 0 'type symbol)))
+    (concat
+     (when ns (format " %s" ns))
+     (pcase type
+       ("function" " <f>")
+       ("macro" " <m>")
+       ("var" " <v>")))))
 
 (defun arei-complete-at-point ()
   "Function to be used for the hook `completion-at-point-functions'."
@@ -40,18 +56,17 @@
     (let* ((bnds (bounds-of-thing-at-point 'symbol))
            (start (car bnds))
            (end (cdr bnds))
-           ;; (ns (monroe-get-clojure-ns))
            (sym (thing-at-point 'symbol))
-           (request (arei-nrepl-dict "op" "completions"
-                                     "prefix" sym))
-           (module (arei-current-module))
-           (_ (when module
+           (request (arei-nrepl-dict
+                     "op" "completions"
+                     "prefix" sym))
+           (_ (when-let* ((module (arei-current-module)))
                 (arei-nrepl-dict-put request "ns" module)))
            (response (arei-send-sync-request request)))
       (when-let* ((completions (arei-nrepl-dict-get response "completions")))
         (list start end
               (mapcar 'arei--get-completion-candidate completions)
-              nil)))))
+              :annotation-function #'arei--annotate-symbol)))))
 
 (provide 'arei-completion)
 ;;; arei-completion.el ends here
