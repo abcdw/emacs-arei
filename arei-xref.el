@@ -62,8 +62,9 @@
     (substring-no-properties thing)))
 
 (cl-defmethod xref-backend-definitions ((_backend (eql arei)) identifier)
-  (when-let* ((loc (arei-xref--make-xref-loc identifier)))
-    (list (xref-make identifier loc))))
+  (when (arei-connected-p)
+    (when-let* ((loc (arei-xref--make-xref-loc identifier)))
+      (list (xref-make identifier loc)))))
 
 (provide 'arei-xref)
 ;;; arei-xref.el ends here

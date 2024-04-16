@@ -82,6 +82,12 @@ and responses.")
   "Returns a process associated with the current session connection."
   (get-buffer-process (arei-connection-buffer)))
 
+;; TODO: [Nikita Domnitskii, 2024-04-16] move connection related code to
+;; arei-connection or something
+(defun arei-connected-p ()
+  "Return t if AREI is currently connected, nil otherwise."
+  (process-live-p (arei-connection)))
+
 (defun arei-client--current-session ()
   (gethash "tooling" arei-client--sessions))
 

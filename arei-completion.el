@@ -36,21 +36,22 @@
 (defun arei-complete-at-point ()
   "Function to be used for the hook `completion-at-point-functions'."
   (interactive)
-  (let* ((bnds (bounds-of-thing-at-point 'symbol))
-         (start (car bnds))
-         (end (cdr bnds))
-         ;; (ns (monroe-get-clojure-ns))
-         (sym (thing-at-point 'symbol))
-         (request (arei-nrepl-dict "op" "completions"
-                              "prefix" sym))
-         (module (arei-current-module))
-         (_ (when module
-              (arei-nrepl-dict-put request "ns" module)))
-         (response (arei-send-sync-request request)))
-    (when-let* ((completions (arei-nrepl-dict-get response "completions")))
-      (list start end
-            (mapcar 'arei--get-completion-candidate completions)
-            nil))))
+  (when (arei-connected-p)
+    (let* ((bnds (bounds-of-thing-at-point 'symbol))
+           (start (car bnds))
+           (end (cdr bnds))
+           ;; (ns (monroe-get-clojure-ns))
+           (sym (thing-at-point 'symbol))
+           (request (arei-nrepl-dict "op" "completions"
+                                     "prefix" sym))
+           (module (arei-current-module))
+           (_ (when module
+                (arei-nrepl-dict-put request "ns" module)))
+           (response (arei-send-sync-request request)))
+      (when-let* ((completions (arei-nrepl-dict-get response "completions")))
+        (list start end
+              (mapcar 'arei--get-completion-candidate completions)
+              nil)))))
 
 (provide 'arei-completion)
 ;;; arei-completion.el ends here

@@ -124,22 +124,23 @@
 (defun arei-eldoc-arglist (callback)
   "Echo procedure arguments at point by calling CALLBACK.
 Intended for `eldoc-documentation-functions' (which see)."
-  (pcase (arei-eldoc--thing)
-    (`(,sym . ,pos)
-     (if (string= sym (car arei-eldoc--last-sym))
-         (arei-eldoc--display-arglists
-          sym pos (cdr arei-eldoc--last-sym) callback)
-       (let ((req (arei-nrepl-dict
-                   "op" "lookup"
-                   "sym" sym)))
-         (when-let* ((module (arei-current-module)))
-           (arei-nrepl-dict-put req "ns" module))
-         (arei-send-request
-          req
-          (arei-connection-buffer)
-          (arei-eldoc--callback sym pos callback)
-          t)
-         'wait-for-response)))))
+  (when (arei-connected-p)
+    (pcase (arei-eldoc--thing)
+      (`(,sym . ,pos)
+       (if (string= sym (car arei-eldoc--last-sym))
+           (arei-eldoc--display-arglists
+            sym pos (cdr arei-eldoc--last-sym) callback)
+         (let ((req (arei-nrepl-dict
+                     "op" "lookup"
+                     "sym" sym)))
+           (when-let* ((module (arei-current-module)))
+             (arei-nrepl-dict-put req "ns" module))
+           (arei-send-request
+            req
+            (arei-connection-buffer)
+            (arei-eldoc--callback sym pos callback)
+            t)
+           'wait-for-response))))))
 
 (provide 'arei-eldoc)
 ;;; arei-eldoc.el ends here
