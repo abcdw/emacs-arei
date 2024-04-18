@@ -33,21 +33,19 @@
 (eval-when-compile (require 'pcase))
 
 (defun arei--get-completion-candidate (dict)
-  (pcase dict
-    ((map candidate type ns)
-     (when ns (put-text-property 0 1 'ns ns candidate))
-     (when type (put-text-property 0 1 'type type candidate))
-     candidate)))
+  (let ((candidate (arei-nrepl-dict-get dict "candidate")))
+    (put-text-property 0 1 'completion-data dict candidate)
+    candidate))
 
 (defun arei--annotate-symbol (symbol)
-  (let ((ns (get-text-property 0 'ns symbol))
-        (type (get-text-property 0 'type symbol)))
-    (concat
-     (when ns (format " %s" ns))
-     (pcase type
-       ("function" " <f>")
-       ("macro" " <m>")
-       ("var" " <v>")))))
+  (pcase (get-text-property 0 'completion-data symbol)
+    ((map ns type)
+     (concat
+      (when ns (format " %s" ns))
+      (pcase type
+        ("function" " <f>")
+        ("macro" " <m>")
+        ("var" " <v>"))))))
 
 (defun arei-complete-at-point ()
   "Function to be used for the hook `completion-at-point-functions'."
