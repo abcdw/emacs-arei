@@ -51,17 +51,17 @@
   "Function to be used for the hook `completion-at-point-functions'."
   (interactive)
   (when (arei-connected-p)
-    (let* ((bnds (bounds-of-thing-at-point 'symbol))
-           (start (car bnds))
-           (end (cdr bnds))
-           (sym (thing-at-point 'symbol))
-           (request (arei-nrepl-dict
-                     "op" "completions"
-                     "prefix" sym))
-           (_ (when-let* ((module (arei-current-module)))
-                (arei-nrepl-dict-put request "ns" module)))
-           (response (arei-send-sync-request request)))
-      (when-let* ((completions (arei-nrepl-dict-get response "completions")))
+    (when-let* ((sym (thing-at-point 'symbol))
+                (bnds (bounds-of-thing-at-point 'symbol))
+                (start (car bnds))
+                (end (cdr bnds))
+                (request (arei-nrepl-dict
+                          "op" "completions"
+                          "prefix" sym)))
+      (when-let* ((module (arei-current-module)))
+        (arei-nrepl-dict-put request "ns" module))
+      (when-let* ((response (arei-send-sync-request request))
+                  (completions (arei-nrepl-dict-get response "completions")))
         (list start end
               (mapcar 'arei--get-completion-candidate completions)
               :annotation-function #'arei--annotate-symbol)))))
