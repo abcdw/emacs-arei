@@ -1,4 +1,4 @@
-;;; arei-eldoc.el --- Eldoc support for AREI -*- lexical-binding: t; coding:utf-8 -*-
+;;; arei-eldoc.el --- Eldoc support for Arei -*- lexical-binding: t; coding:utf-8 -*-
 
 ;; Copyright (C) 2024  Nikita Domnitskii
 
@@ -20,7 +20,7 @@
 
 ;;; Commentary:
 
-;; eldoc support for AREI
+;; eldoc support for Arei
 
 ;;; Code:
 

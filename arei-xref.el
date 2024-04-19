@@ -1,4 +1,4 @@
-;;; arei-xref.el --- AREI's backend for xref -*- lexical-binding: t; -*-
+;;; arei-xref.el --- Arei's backend for xref -*- lexical-binding: t; -*-
 
 ;; Copyright © 2023, 2024 Andrew Tropin <andrew@trop.in>
 ;; Copyright © 2024 Nikita Domnitskii
@@ -23,7 +23,7 @@
 
 ;;; Commentary:
 
-;; AREI's backend for xref
+;; Arei's backend for xref
 
 ;;; Code:
 

@@ -1,4 +1,4 @@
-;;; arei-completion.el --- Code completion for AREI  -*- lexical-binding: t; -*-
+;;; arei-completion.el --- Code completion for Arei  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2023, 2024 Andrew Tropin <andrew@trop.in>
 ;; Copyright © 2024 Nikita Domnitskii
@@ -23,7 +23,7 @@
 
 ;;; Commentary:
 
-;; Code completion for AREI
+;; Code completion for Arei
 
 ;;; Code:
 

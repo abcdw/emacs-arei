@@ -25,8 +25,6 @@
 
 ;; Abstraction over nREPL interactions
 
-;; eldoc support for Arei
-
 ;;; Code:
 (require 'arei-nrepl)
 (require 'sesman)
@@ -85,7 +83,7 @@ and responses.")
 ;; TODO: [Nikita Domnitskii, 2024-04-16] move connection related code to
 ;; arei-connection or something
 (defun arei-connected-p ()
-  "Return t if AREI is currently connected, nil otherwise."
+  "Return t if Arei is currently connected, nil otherwise."
   (process-live-p (arei-connection)))
 
 (defun arei-client--current-session ()
