@@ -56,6 +56,14 @@
                ns symbol
                (arei-eldoc-format-arglists arglists 0))))))
 
+(defun arei--company-doc-buffer (symbol)
+  (when-let* ((comp-data (get-text-property 0 'completion-data symbol))
+              (docs (arei-nrepl-dict-get comp-data "docs")))
+    (with-current-buffer (get-buffer-create " *arei-doc*")
+      (erase-buffer)
+      (insert docs)
+      (current-buffer))))
+
 (defun arei-complete-at-point ()
   "Function to be used for the hook `completion-at-point-functions'."
   (interactive)
@@ -76,7 +84,8 @@
         (list start end
               (mapcar 'arei--get-completion-candidate completions)
               :annotation-function #'arei--annotate-symbol
-              :company-docsig #'arei--company-docsig)))))
+              :company-docsig #'arei--company-docsig
+              :company-doc-buffer #'arei--company-doc-buffer)))))
 
 (provide 'arei-completion)
 ;;; arei-completion.el ends here
