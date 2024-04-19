@@ -40,27 +40,15 @@
 
 (defun arei-eldoc--display-arglists (sym pos info callback)
   (pcase info
-    ((map module arglists)
+    ((map ns arglists)
      (funcall callback
-              (mapconcat
-               (lambda (arglist)
-                 (arei-eldoc--format-arglist arglist pos))
-               arglists
-               " | ")
-              :thing (format "%s %s" module sym)
+              (arei-eldoc-format-arglists arglists pos)
+              :thing (format "%s %s" ns sym)
               :face 'font-lock-function-name-face))))
 
 (defun arei-eldoc--format-arglist (arglist pos)
-  (pcase arglist
-    ((map required optional keyword allow-other-keys? rest)
-     (let* ((arglist `(,@(when required required)
-                       ,@(when optional (cons "#:optional" optional))
-                       ,@(when keyword (cons "#:key" keyword))
-                       ,(when allow-other-keys? "#:allow-other-keys")
-                       ,@(when rest (list "." rest))))
-            (arglist (seq-remove #'null arglist))
-            (highlighted-arglist (arei-eldoc--highlight-args arglist pos)))
-       (concat "(" (string-join highlighted-arglist " ") ")")))))
+  (let* ((highlighted-arglist (arei-eldoc--highlight-args arglist pos)))
+    (concat "(" (string-join highlighted-arglist " ") ")")))
 
 (defun arei-eldoc--highlight-args (arglist pos)
   (let ((rest-pos (seq-position arglist ".")))
@@ -120,6 +108,13 @@
           (lp key (1+ pos)))
          (t
           (or key (max 0 (1- pos)))))))))
+
+(defun arei-eldoc-format-arglists (arglists pos)
+  (mapconcat
+   (lambda (arglist)
+     (arei-eldoc--format-arglist arglist pos))
+   arglists
+   " | "))
 
 (defun arei-eldoc-arglist (callback)
   "Echo procedure arguments at point by calling CALLBACK.

@@ -29,11 +29,12 @@
 
 (require 'arei-client)
 (require 'arei-nrepl)
+(require 'arei-eldoc)
 (eval-when-compile (require 'map))
 (eval-when-compile (require 'pcase))
 
 (defun arei--get-completion-candidate (dict)
-  (let ((candidate (arei-nrepl-dict-get dict "candidate")))
+  (when-let* ((candidate (arei-nrepl-dict-get dict "candidate")))
     (put-text-property 0 1 'completion-data dict candidate)
     candidate))
 
@@ -47,6 +48,14 @@
         ("macro" " <m>")
         ("var" " <v>"))))))
 
+(defun arei--company-docsig (symbol)
+  (pcase (get-text-property 0 'completion-data symbol)
+    ((map ns arglists)
+     (when arglists
+       (format "%s %s: %s"
+               ns symbol
+               (arei-eldoc-format-arglists arglists 0))))))
+
 (defun arei-complete-at-point ()
   "Function to be used for the hook `completion-at-point-functions'."
   (interactive)
@@ -57,14 +66,17 @@
                 (end (cdr bnds))
                 (request (arei-nrepl-dict
                           "op" "completions"
-                          "prefix" sym)))
+                          "prefix" sym
+                          "options" (arei-nrepl-dict
+                                     "extra-metadata" '("arglists" "docs")))))
       (when-let* ((module (arei-current-module)))
         (arei-nrepl-dict-put request "ns" module))
       (when-let* ((response (arei-send-sync-request request))
                   (completions (arei-nrepl-dict-get response "completions")))
         (list start end
               (mapcar 'arei--get-completion-candidate completions)
-              :annotation-function #'arei--annotate-symbol)))))
+              :annotation-function #'arei--annotate-symbol
+              :company-docsig #'arei--company-docsig)))))
 
 (provide 'arei-completion)
 ;;; arei-completion.el ends here
