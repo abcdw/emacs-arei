@@ -221,10 +221,11 @@ This function also removes itself from `pre-command-hook'."
          (insert "\n"))
        (when (member "done" status)
          (with-current-buffer connection-buffer
-           (let ((fmt (if value " => %s" " ;; interrupted")))
-             (unless (eros--make-result-overlay
-                         ;; response
-                         (or value "")
+           (let* ((value (and
+                          value
+                          (replace-regexp-in-string "^" " => " value)))
+                  (fmt (if value "%s" " ;; interrupted")))
+             (unless (eros--make-result-overlay (or value "") ; response
                        :format fmt
                        :where (or expression-end (point))
                        :duration eros-eval-result-duration)
