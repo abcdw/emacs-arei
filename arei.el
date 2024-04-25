@@ -224,7 +224,11 @@ This function also removes itself from `pre-command-hook'."
            (let* ((value (and
                           value
                           (replace-regexp-in-string "^" " => " value)))
-                  (fmt (if value "%s" " ;; interrupted")))
+                  (fmt (if value "%s" " ;; interrupted"))
+                  (forward-sexp-function
+                   (lambda (&rest args)
+                     ;; see https://github.com/xiongtx/eros/issues/10
+                     (ignore-errors (apply #'forward-sexp args)))))
              (unless (eros--make-result-overlay (or value "") ; response
                        :format fmt
                        :where (or expression-end (point))
