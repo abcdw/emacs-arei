@@ -107,9 +107,6 @@ and responses.")
                          (time-subtract nil time0))
         (error "Sync nREPL request timed out %s" request))
       (accept-process-output nil 0.01))
-    (with-current-buffer conn
-      (when-let* ((id (arei-nrepl-dict-get response "id")))
-        (remhash id arei-client--pending-requests)))
     response))
 
 (defun arei-send-request (request connection callback &optional with-session)

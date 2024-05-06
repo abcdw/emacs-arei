@@ -181,10 +181,13 @@ This function also removes itself from `pre-command-hook'."
 
 (defun arei--dispatch-response (response)
   "Find associated callback for a message by id."
-  (when-let* ((id (arei-nrepl-dict-get response "id"))
-              (callback (gethash id arei-client--pending-requests)))
-    (when callback
-      (funcall callback response))))
+  (pcase response
+    ((map id status)
+     (when-let* ((callback (gethash id arei-client--pending-requests)))
+       (when callback
+         (funcall callback response)
+         (when (member "done" status)
+           (remhash id arei-client--pending-requests)))))))
 
 (defun arei--send-stdin (&optional connection)
   (arei-send-request
@@ -233,8 +236,7 @@ This function also removes itself from `pre-command-hook'."
                        :format fmt
                        :where (or expression-end (point))
                        :duration eros-eval-result-duration)
-               (message fmt value))))
-         (remhash id arei-client--pending-requests))
+               (message fmt value)))))
 
        (when (get-buffer-window)
          (set-window-point (get-buffer-window) (buffer-size)))))))
@@ -245,13 +247,10 @@ stdout/stderr, saves value to `arei-eval-value' buffer-local
 variable."
   (lambda (response)
     (pcase response
-      ((map id status value)
+      ((map status value)
        (when (member "need-input" status)
          (arei--send-stdin))
-       (setq-local arei-eval-value value)
-
-       (when (member "done" status)
-         (remhash id arei-client--pending-requests))))))
+       (setq-local arei-eval-value value)))))
 
 (defun arei--request-user-eval (code &optional bounds)
   (pcase-let* ((`(,start . ,end) bounds)
@@ -372,7 +371,7 @@ we couldn't figure it out)"))))
   "Returns callback that is called when new session is created."
   (lambda (response)
     (pcase response
-      ((map id new-session)
+      ((map new-session)
        (when new-session
          (insert
           (propertize
@@ -382,8 +381,7 @@ we couldn't figure it out)"))))
          (message "Connected to nREPL server.")
          (when callback (funcall callback))
          (setq-local arei--nrepl-session new-session)
-         (puthash session-name new-session arei-client--sessions)
-         (remhash id arei-client--pending-requests))))))
+         (puthash session-name new-session arei-client--sessions))))))
 
 (defun arei--create-nrepl-session (connection session-name &optional callback)
   "Setups an nrepl session and register it in `arei--nrepl-sessions'."
