@@ -34,6 +34,7 @@
 (require 'arei-eldoc)
 (require 'arei-xref)
 (require 'arei-completion)
+(require 'arei-spinner)
 (require 'sesman)
 (require 'eros)
 (eval-when-compile (require 'subr-x))
@@ -236,7 +237,11 @@ This function also removes itself from `pre-command-hook'."
                        :format fmt
                        :where (or expression-end (point))
                        :duration eros-eval-result-duration)
-               (message fmt value)))))
+               (message fmt value))))
+         ;; NOTE: stop spinner if it's the last request (we can have
+         ;; multiple evals queued)
+         (when (= 1 (hash-table-count arei-client--pending-requests))
+           (arei-spinner-stop)))
 
        (when (get-buffer-window)
          (set-window-point (get-buffer-window) (buffer-size)))))))
@@ -268,6 +273,7 @@ variable."
                                      (goto-char start)
                                      (current-column)))))
       (arei-nrepl-dict-put request "column" column))
+    (ignore-errors (arei-spinner-start))
     (arei-send-request
      request
      (arei-connection-buffer)
@@ -509,13 +515,18 @@ with prefix argument."
 ;;; arei-mode
 ;;;
 
-(defun arei--modeline-info ()
-  "Return info for the arei mode modeline.
-Info contains the connection type, project name and host:port endpoint."
-  "not connected")
+(defun arei--modeline-connection-info ()
+  (list
+   "["
+   (cond
+    ((arei-spinner-modeline) (arei-spinner-modeline))
+    ((arei-connected-p) "connected")
+    (t "disconnected"))
+   "]"))
 
-(defvar arei-mode-line '(:eval (format " arei[%s]" (arei--modeline-info))) "\
-Mode line lighter for are mode.
+(defvar arei-mode-line
+  '(" arei" (:eval (arei--modeline-connection-info))) "\
+Mode line lighter for arei mode.
 
 The value of this variable is a mode line template as in
 `mode-line-format'.  See Info Node `(elisp)Mode Line Format' for details
@@ -524,6 +535,8 @@ about mode line templates.
 Customize this variable to change how arei mode displays its status in the
 mode line.  The default value displays the current connection.  Set this
 variable to nil to disable the mode line entirely.")
+
+(put 'arei-mode-line 'risky-local-variable t)
 
 (defvar-keymap arei-mode-map
   "C-x C-e" #'arei-evaluate-last-sexp
