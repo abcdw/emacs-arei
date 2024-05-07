@@ -112,6 +112,7 @@ and responses.")
 (defun arei-send-request (request connection callback &optional with-session)
   "Send REQUEST and assign CALLBACK.
 The CALLBACK function will be called when reply is received."
+  (unless connection (error "No nREPL connection for current session"))
   (with-current-buffer connection
     (let* ((id (number-to-string (cl-incf arei--request-counter))))
       ;; TODO: [Andrew Tropin, 2023-11-20] Ensure that session is created

@@ -273,12 +273,12 @@ variable."
                                      (goto-char start)
                                      (current-column)))))
       (arei-nrepl-dict-put request "column" column))
-    (ignore-errors (arei-spinner-start))
     (arei-send-request
      request
      (arei-connection-buffer)
      (arei--process-user-eval-response-callback (current-buffer) end)
-     t)))
+     t)
+    (ignore-errors (arei-spinner-start))))
 
 (defun arei--request-eval (code &optional connection)
   (let ((request (arei-nrepl-dict
