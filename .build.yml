@@ -1,6 +1,8 @@
 image: guix
 packages:
   - make
+  - hut
+  - emacs-no-x
 sources:
   - https://git.sr.ht/~abcdw/emacs-arei
 tasks:
