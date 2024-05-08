@@ -3,6 +3,7 @@ packages:
   - make
   - hut
   - emacs-no-x
+  - emacs-ox-html-stable-ids
 sources:
   - https://git.sr.ht/~abcdw/emacs-arei
 tasks:
