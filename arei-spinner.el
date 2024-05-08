@@ -33,7 +33,7 @@
 (defvar arei-spinner--ring
   (ring-convert-sequence-to-ring
    ;; TODO: [Nikita Domnitskii, 2024-05-06] should be a custom
-   '("⣾" "⣽" "⣻" "⢿" "⡿" "⣟" "⣯" "⣷")))
+   '("⣷" "⣯" "⣟" "⡿" "⢿" "⣻" "⣽" "⣾")))
 
 (defun arei-spinner--tick ()
   (setq arei-spinner--symbol
