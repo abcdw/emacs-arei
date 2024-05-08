@@ -1,0 +1,16 @@
+image: guix
+packages:
+  - make
+sources:
+  - https://git.sr.ht/~abcdw/emacs-arei
+tasks:
+  - readme: |
+      cd emacs-arei
+      if [[ "$BUILD_SUBMITTER" == "git.sr.ht" ]]; then
+        make deploy-README.html
+      fi
+oauth: git.sr.ht/REPOSITORIES:RW git.sr.ht/PROFILE:RO
+triggers:
+  - action: email
+    condition: failure
+    to: ~abcdw/rde-devel@lists.sr.ht
