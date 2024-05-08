@@ -9,12 +9,16 @@ as an nREPL client with other servers as well.
 At the moment Arei provides the following functionality out of the
 box:
 - Asynchronous interruptible module-aware evaluation.
+- Multiple return values and queueing of evaluation.
+- Evaluation in progress indicator.
 - Restartable continuations (both delimited and undelimited).
 - Proper stdout, stderr and stdin handling.
 - Exception and Backtrace pretty-printing.
 - Evaluation result tooltips.
-- Session management and buffer-project association (via [[https://github.com/vspinu/sesman][Sesman]]).
 - Module-aware completion via [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Completion-in-Buffers.html][CAPF]] (See [[https://youtu.be/fnE0lXoe7Y0][Emacs Completion Explained]]).
+- Function signatures via [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Programming-Language-Doc.html][ElDoc]].
+- Go to definition via [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Xref.html][Xref]]. Go to module.
+- Session management and buffer-project association via [[https://github.com/vspinu/sesman][Sesman]].
 
 Watch a [[https://emacsconf.org/2023/talks/scheme/][talk]] from EmacsConf 2023 with more detailed explanation and
 demo of provided functionality.
