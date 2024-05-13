@@ -232,7 +232,7 @@ This function also removes itself from `pre-command-hook'."
                                     (mapconcat (lambda (v) (concat " => " v))
                                                (reverse vals)
                                                "\n"))
-                               (concat " => " value)))
+                               (and value (concat " => " value))))
                     (fmt (if value "%s" " ;; interrupted"))
                     (forward-sexp-function
                      (lambda (&rest args)
