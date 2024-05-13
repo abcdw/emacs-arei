@@ -205,46 +205,51 @@ This function also removes itself from `pre-command-hook'."
 (defun arei--process-user-eval-response-callback
     (connection-buffer &optional expression-end)
   "Set up a handler for eval request responses."
-  (lambda (response)
-    (pcase response
-      ((map id status value out err)
-       (goto-char (point-max))
+  (let ((vals nil))
+    (lambda (response)
+      (pcase response
+        ((map status value out err)
+         (goto-char (point-max))
 
-       (when (member "need-input" status)
-         (arei--send-stdin))
-       (when out
-         (insert out))
-       (when err
-         (insert (propertize err 'face
-                             '((t (:inherit font-lock-warning-face))))))
-       (when value
-         (unless (= 0 (current-column))
+         (when (member "need-input" status)
+           (arei--send-stdin))
+         (when out
+           (insert out))
+         (when err
+           (insert (propertize err 'face
+                               '((t (:inherit font-lock-warning-face))))))
+         (when value
+           (unless (= 0 (current-column))
+             (insert "\n"))
+           (insert (propertize value 'face
+                               '((t (:inherit font-lock-string-face)))))
            (insert "\n"))
-         (insert (propertize value 'face
-                             '((t (:inherit font-lock-string-face)))))
-         (insert "\n"))
-       (when (member "done" status)
-         (with-current-buffer connection-buffer
-           (let* ((value (and
-                          value
-                          (replace-regexp-in-string "^" " => " value)))
-                  (fmt (if value "%s" " ;; interrupted"))
-                  (forward-sexp-function
-                   (lambda (&rest args)
-                     ;; see https://github.com/xiongtx/eros/issues/10
-                     (ignore-errors (apply #'forward-sexp args)))))
-             (unless (eros--make-result-overlay (or value "") ; response
-                       :format fmt
-                       :where (or expression-end (point))
-                       :duration eros-eval-result-duration)
-               (message fmt value))))
-         ;; NOTE: stop spinner if it's the last request (we can have
-         ;; multiple evals queued)
-         (when (= 1 (hash-table-count arei-client--pending-requests))
-           (arei-spinner-stop)))
+         (when (member "multiple-values" status)
+           (push value vals))
+         (when (member "done" status)
+           (with-current-buffer connection-buffer
+             (let* ((value (or (and vals
+                                    (mapconcat (lambda (v) (concat " => " v))
+                                               (reverse vals)
+                                               "\n"))
+                               (concat " => " value)))
+                    (fmt (if value "%s" " ;; interrupted"))
+                    (forward-sexp-function
+                     (lambda (&rest args)
+                       ;; see https://github.com/xiongtx/eros/issues/10
+                       (ignore-errors (apply #'forward-sexp args)))))
+               (unless (eros--make-result-overlay (or value "") ; response
+                         :format fmt
+                         :where (or expression-end (point))
+                         :duration eros-eval-result-duration)
+                 (message fmt value))))
+           ;; NOTE: stop spinner if it's the last request (we can have
+           ;; multiple evals queued)
+           (when (= 1 (hash-table-count arei-client--pending-requests))
+             (arei-spinner-stop)))
 
-       (when (get-buffer-window)
-         (set-window-point (get-buffer-window) (buffer-size)))))))
+         (when (get-buffer-window)
+           (set-window-point (get-buffer-window) (buffer-size))))))))
 
 (defun arei--get-evaluation-value-callback (_connection-buffer)
   "Set up a handler for eval request responses.  Ignores
