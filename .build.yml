@@ -11,7 +11,7 @@ tasks:
       cd emacs-arei
 
       # Deploy readme only when abcdw pushes.  Managing shared secrets
-      # without organizations and teams are two cumbersome.
+      # without organizations and teams is too cumbersome.
       if [[ "$BUILD_SUBMITTER" == "git.sr.ht" ]] && \
          [[ "$JOB_URL" =~ ^https://builds.sr.ht/~abcdw/job/.*$ ]]; then
         make deploy-README.html
