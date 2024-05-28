@@ -160,6 +160,7 @@ This function also removes itself from `pre-command-hook'."
 (defun arei--sentinel (process message)
   "Called when connection is changed; in out case dropped."
   (message "nREPL connection closed: %s" message)
+  (arei-spinner-stop)
   (kill-buffer (process-buffer process)))
 
 ;; TODO: [Andrew Tropin, 2023-10-19] Handle incomplete incomming string.
