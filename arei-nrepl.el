@@ -214,6 +214,18 @@ STACK is as in `arei-nrepl--bdecode-1'."
            istack)
           (t istack))))
 
+(defconst arei-nrepl-error-buffer-name "*arei-nrepl-error*")
+
+(defun arei-nrepl-log-error (msg)
+  "Log the given MSG."
+  (with-current-buffer (get-buffer-create arei-nrepl-error-buffer-name)
+    (setq buffer-read-only nil)
+    (goto-char (point-max))
+    (insert msg)
+    (when-let* ((win (get-buffer-window)))
+      (set-window-point win (point-max)))
+    (setq buffer-read-only t)))
+
 (defun arei-nrepl--bdecode-1 (&optional stack)
   "Decode one elementary bencode object starting at point.
 Bencoded object is either list, dict, integer or string.  See
