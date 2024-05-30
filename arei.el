@@ -35,6 +35,7 @@
 (require 'arei-xref)
 (require 'arei-completion)
 (require 'arei-spinner)
+(require 'scheme)
 (require 'sesman)
 (require 'eros)
 (eval-when-compile (require 'subr-x))
@@ -605,7 +606,6 @@ See command `arei-mode'."
 (with-eval-after-load 'scheme
   (keymap-set scheme-mode-map "C-c C-a" #'arei)
   (keymap-set scheme-mode-map "C-c C-s" 'sesman-map)
-  (require 'sesman)
   (sesman-install-menu scheme-mode-map)
   (add-hook 'scheme-mode-hook 'arei-mode--maybe-activate)
   (arei--enable-on-existing-scheme-buffers))
