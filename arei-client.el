@@ -28,6 +28,7 @@
 ;;; Code:
 (require 'arei-nrepl)
 (require 'sesman)
+(require 'map)
 
 (defconst arei--module-re
   "^[[:blank:]]*([[:blank:]\n]*define-module[[:blank:]\n]+\\(([^)]+)\\)"
@@ -72,9 +73,23 @@ and responses.")
                (message "Key: %s, Value: %s" key value))
              arei-client--pending-requests)))
 
+(defvar arei-client--session-cache
+  (make-hash-table :test 'equal))
+
+(defun arei-client-remove-from-session-cache ()
+  (let ((filename (buffer-file-name (current-buffer))))
+    (map-delete arei-client--session-cache filename)))
+
+(defun arei-client-clear-session-cache ()
+  ;; NOTE: no equalent in map.el
+  (clrhash arei-client--session-cache))
+
 (defun arei-connection-buffer ()
   "Returns a connection buffer associated with the current session."
-  (cadr (sesman-current-session 'Arei)))
+  (let ((filename (buffer-file-name (current-buffer))))
+    (or (map-elt arei-client--session-cache filename)
+        (when-let* ((buff (cadr (sesman-current-session 'Arei))))
+          (map-put! arei-client--session-cache filename buff)))))
 
 (defun arei-connection ()
   "Returns a process associated with the current session connection."
