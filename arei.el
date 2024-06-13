@@ -504,6 +504,7 @@ this function directly."
       (process-put process :string-q (queue-create))
       (process-put process :response-q (arei-nrepl-response-queue))
 
+      (arei-client-clear-session-cache)
       (sesman-add-object 'Arei sesman-session-name buffer 'allow-new)
 
       (with-current-buffer buffer
