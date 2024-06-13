@@ -97,7 +97,7 @@ Development related and other commands:
 
 (cl-defmethod sesman-start-session ((_system (eql Arei)))
   "Start a connection."
-  (call-interactively #'arei))
+  (call-interactively #'arei--start))
 
 (cl-defmethod sesman-friendly-session-p ((_system (eql Arei)) session)
   (let* ((conn (cadr session))
@@ -469,10 +469,11 @@ keybindings info in greeting message."
          (read-number "port: " default-port 'arei-port))
       (list :host default-host :port default-port))))
 
-(defun arei-connect (arg)
+(defun arei--start (arg)
   "Connect to remote endpoint using provided :HOST and :PORT
-from PARAMS plist.  Read values from minibuffer if called
-with prefix argument."
+from PARAMS plist.  Initialize sesman session.  Read values from
+minibuffer if called with prefix argument.  Users should not call
+this function directly."
   (interactive "P")
   (let* ((params (thread-first
                    (arei--create-params-plist arg)
@@ -486,6 +487,11 @@ with prefix argument."
          ;; TODO: [Andrew Tropin, 2023-11-20] Handle the case when the
          ;; buffer already exists.
          (buffer-name (concat "*arei: " sesman-session-name "*")))
+
+    ;; Prevent function being called directly, bypassing sesman
+    ;; machinery and thus cleanup phaseses.
+    (when (get-buffer buffer-name)
+      (user-error "Connection buffer already exist."))
 
     (let* ((process (open-network-stream
                      (concat "nrepl-connection-" host-and-port)
@@ -592,7 +598,9 @@ variable to nil to disable the mode line entirely.")
 (defun arei ()
   "Connect to nrepl server."
   (interactive)
-  (call-interactively 'arei-connect))
+  (if (sesman-current-session 'Arei)
+      (sesman-restart)
+      (sesman-start)))
 
 ;;;###autoload
 (defun arei--enable-on-existing-scheme-buffers ()
