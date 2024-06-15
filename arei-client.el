@@ -87,9 +87,10 @@ and responses.")
 (defun arei-connection-buffer ()
   "Returns a connection buffer associated with the current session."
   (let ((filename (buffer-file-name (current-buffer))))
-    (or (map-elt arei-client--session-cache filename)
-        (when-let* ((buff (cadr (sesman-current-session 'Arei))))
-          (map-put! arei-client--session-cache filename buff)))))
+    (if (map-contains-key arei-client--session-cache filename)
+        (map-elt arei-client--session-cache filename)
+      (let ((buff (cadr (sesman-current-session 'Arei))))
+        (map-put! arei-client--session-cache filename buff)))))
 
 (defun arei-connection ()
   "Returns a process associated with the current session connection."
