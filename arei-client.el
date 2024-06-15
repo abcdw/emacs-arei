@@ -73,19 +73,23 @@ and responses.")
                (message "Key: %s, Value: %s" key value))
              arei-client--pending-requests)))
 
-(defvar arei-client--session-cache
-  (make-hash-table :test 'equal))
+(defvar arei-client--session-cache (make-hash-table :test 'equal)
+  "Session cache for `arei-connection-buffer'.")
 
 (defun arei-client-remove-from-session-cache ()
+  "Remove current file-name association from session cache.
+This function is intended to be used as a value for `kill-buffer-hook'."
   (let ((filename (buffer-file-name (current-buffer))))
     (map-delete arei-client--session-cache filename)))
 
 (defun arei-client-clear-session-cache ()
+  "Clear session cache.
+This function is intended to be used as a value for `sesman-post-command-hook'."
   ;; NOTE: no equalent in map.el
   (clrhash arei-client--session-cache))
 
 (defun arei-connection-buffer ()
-  "Returns a connection buffer associated with the current session."
+  "Return a connection buffer associated with the current session."
   (let ((filename (buffer-file-name (current-buffer))))
     (if (map-contains-key arei-client--session-cache filename)
         (map-elt arei-client--session-cache filename)
@@ -93,7 +97,7 @@ and responses.")
         (map-put! arei-client--session-cache filename buff)))))
 
 (defun arei-connection ()
-  "Returns a process associated with the current session connection."
+  "Return a process associated with the current session connection."
   (get-buffer-process (arei-connection-buffer)))
 
 ;; TODO: [Nikita Domnitskii, 2024-04-16] move connection related code to
