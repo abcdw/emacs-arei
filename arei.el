@@ -456,10 +456,56 @@ keybindings info in greeting message."
   (cond ((equal arg '(4)) (list :select-endpoint t))
         (t nil)))
 
+(defun arei--nrepl-port-string-to-number (s)
+  "Converts `S' from string to number when suitable."
+  (when (string-match "^\\([0-9]+\\)" s)
+    (string-to-number (match-string 0 s))))
+
+(defun arei--read-nrepl-port-from-file (file)
+  "Attempts to read port from a file named by FILE.
+
+Discards it if it can be determined that the port is not active."
+  (when (file-exists-p file)
+    (when-let* ((port-string (with-temp-buffer
+                               (insert-file-contents file)
+                               (buffer-string)))
+                (port-number (arei--nrepl-port-string-to-number port-string)))
+      (let ((lsof (executable-find "lsof")))
+        (if (and lsof port-number)
+            (unless (equal ""
+                           (shell-command-to-string
+                            (format "%s -i:%s" lsof port-number)))
+              port-number)
+          port-number)))))
+
+(defun arei--try-find-nrepl-port-around ()
+  "Try to find a `.nrepl-port' file and read a port number from
+it. Start with a file in current directory, fallback to the one
+in a project root.
+
+Uses `arei--read-nrepl-port-from-file', so if there is `lsof' and
+it shows that there is no process attached to the port, the port
+will be ignored and function will try to find the next one.
+
+Return nil if nothing found."
+  (let ((possible-nrepl-port-files
+         (list
+          (expand-file-name ".nrepl-port")
+          (when (project-current)
+            (expand-file-name
+             ".nrepl-port"
+             (file-name-as-directory (project-root (project-current))))))))
+    (seq-some
+     (lambda (f)
+       (when-let (port (and f (arei--read-nrepl-port-from-file f)))
+         port))
+     possible-nrepl-port-files)))
+
 (defun arei--select-endpoint (params)
   "Read HOST and PORT from minibuffer and put them into plist."
-  (let ((default-host (or (plist-get params :host) "localhost"))
-        (default-port (or (plist-get params :port) 7888)))
+  (let* ((nrepl-port-nearby (arei--try-find-nrepl-port-around))
+         (default-host (or (plist-get params :host) "localhost"))
+         (default-port (or (plist-get params :port) nrepl-port-nearby 7888)))
     (if (plist-get params :select-endpoint)
         (list
          :host
