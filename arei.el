@@ -539,38 +539,43 @@ this function directly."
     (when (get-buffer buffer-name)
       (user-error "Connection buffer already exist."))
 
-    (let* ((process (open-network-stream
-                     (concat "nrepl-connection-" host-and-port)
-                     buffer-name host port))
-           (buffer (process-buffer process))
-           (initial-buffer (current-buffer)))
-      (set-process-coding-system process 'utf-8-unix 'utf-8-unix)
-      (set-process-filter process 'arei--connection-filter)
-      (set-process-sentinel process 'arei--sentinel)
-      (process-put process :string-q (queue-create))
-      (process-put process :response-q (arei-nrepl-response-queue))
+    (condition-case err
+        (let* ((process (open-network-stream
+                         (concat "nrepl-connection-" host-and-port)
+                         buffer-name host port))
+               (buffer (process-buffer process))
+               (initial-buffer (current-buffer)))
+          (set-process-coding-system process 'utf-8-unix 'utf-8-unix)
+          (set-process-filter process 'arei--connection-filter)
+          (set-process-sentinel process 'arei--sentinel)
+          (process-put process :string-q (queue-create))
+          (process-put process :response-q (arei-nrepl-response-queue))
 
-      (arei-client-clear-session-cache)
-      (sesman-add-object 'Arei sesman-session-name buffer 'allow-new)
+          (arei-client-clear-session-cache)
+          (sesman-add-object 'Arei sesman-session-name buffer 'allow-new)
 
-      (with-current-buffer buffer
-        (arei-connection-mode)
-        (setq arei--request-counter 0)
-        (setq arei-client--sessions (make-hash-table :test 'equal))
-        (setq arei-client--pending-requests (make-hash-table :test 'equal))
-        ;; Set the current working directory for the connection buffer
-        ;; to the project root.
-        (when (project-current)
-          (setq default-directory (project-root (project-current))))
+          (with-current-buffer buffer
+            (arei-connection-mode)
+            (setq arei--request-counter 0)
+            (setq arei-client--sessions (make-hash-table :test 'equal))
+            (setq arei-client--pending-requests (make-hash-table :test 'equal))
+            ;; Set the current working directory for the connection buffer
+            ;; to the project root.
+            (when (project-current)
+              (setq default-directory (project-root (project-current))))
 
-        (insert
-         (propertize
-          (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)
-          'face
-          '((t (:inherit font-lock-comment-face)))))
-        (arei--initialize-session buffer initial-buffer))
-      (display-buffer buffer)
-      buffer)))
+            (insert
+             (propertize
+              (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)
+              'face
+              '((t (:inherit font-lock-comment-face)))))
+            (arei--initialize-session buffer initial-buffer))
+          (display-buffer buffer)
+          buffer)
+        (error
+         (progn
+           (kill-buffer buffer-name)
+           (message "%s" (error-message-string err)))))))
 
 
 ;;;
