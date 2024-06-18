@@ -36,7 +36,7 @@ your project sources and dependencies are on [[https://www.gnu.org/software/guil
 
 #+begin_src sh
 guix shell guile-next guile-ares-rs -- \ # line is optional, sets needed load paths
-guile -c '((@ (nrepl server) run-nrepl-server) #:port 7888)'
+guile -c '((@ (ares server) run-nrepl-server))'
 #+end_src
 
 Run Emacs with Arei package installed (available).
