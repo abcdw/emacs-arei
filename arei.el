@@ -160,8 +160,9 @@ This function also removes itself from `pre-command-hook'."
 
 (defun arei--sentinel (process message)
   "Called when connection is changed; in out case dropped."
+  (with-current-buffer (process-buffer process)
+    (sesman-quit))
   (message "nREPL connection closed: %s" message)
-  (kill-buffer (process-buffer process))
   ;; NOTE: sesman-post-command-hook is not run when connection buffer is
   ;; killed, so we run it here just in case
   (run-hooks 'sesman-post-command-hook))
