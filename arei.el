@@ -111,6 +111,7 @@ Development related and other commands:
 (cl-defmethod sesman-quit-session ((_system (eql Arei)) session)
   "Quit an Arei SESSION."
   (let ((kill-buffer-query-functions nil))
+    (arei-spinner-stop)
     (kill-buffer (cadr session))))
 
 
