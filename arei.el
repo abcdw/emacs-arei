@@ -104,7 +104,7 @@ Development related and other commands:
   (let* ((conn (cadr session))
          (file (buffer-file-name))
          (load-path (thread-first
-                      (arei-nrepl-dict "op" "ares.guile/load-path")
+                      (arei-nrepl-dict "op" "ares.guile.utils/load-path")
                       (arei-send-sync-request conn t)
                       (arei-nrepl-dict-get "load-path"))))
     (seq-find (lambda (path) (string-prefix-p path file)) load-path)))
