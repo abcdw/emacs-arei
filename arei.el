@@ -36,6 +36,7 @@
 (require 'arei-completion)
 (require 'arei-spinner)
 (require 'arei-guile-evaluation)
+(require 'arei-guile-macroexpansion)
 (require 'scheme)
 (require 'sesman)
 (require 'eros)
@@ -432,6 +433,9 @@ variable to nil to disable the mode line entirely.")
   "C-c C-k" #'arei-evaluate-buffer
   "C-c C-b" #'arei-interrupt-evaluation
   "C-c C-z" #'arei-switch-to-connection-buffer
+  "C-c C-m" arei-guile-macroexpansion-map
+  "C-c C-t" gider-test-commands-map
+
   "C-M-x" #'arei-evaluate-defun
   "C-c C-c" #'arei-evaluate-defun)
 
