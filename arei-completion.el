@@ -1,12 +1,10 @@
-;;; arei-completion.el --- Code completion for Arei  -*- lexical-binding: t; -*-
+;;; arei-completion.el --- Code Completion for Arei  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2023, 2024 Andrew Tropin <andrew@trop.in>
 ;; Copyright © 2024 Nikita Domnitskii
 
 ;; Author: Andrew Tropin <andrew@trop.in>
 ;;         Nikita Domnitskii <nikita@domnitskii.me>
-
-;; Keywords: languages, guile, scheme, nrepl
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -23,7 +21,7 @@
 
 ;;; Commentary:
 
-;; Code completion for Arei
+;; Code Completion for Arei
 
 ;;; Code:
 

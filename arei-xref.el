@@ -1,12 +1,10 @@
-;;; arei-xref.el --- Arei's backend for xref -*- lexical-binding: t; -*-
+;;; arei-xref.el --- Arei's Backend for xref -*- lexical-binding: t; -*-
 
 ;; Copyright © 2023, 2024 Andrew Tropin <andrew@trop.in>
 ;; Copyright © 2024 Nikita Domnitskii
 
 ;; Author: Andrew Tropin <andrew@trop.in>
 ;;         Nikita Domnitskii <nikita@domnitskii.me>
-
-;; Keywords: languages, guile, scheme, nrepl
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -23,7 +21,7 @@
 
 ;;; Commentary:
 
-;; Arei's backend for xref
+;; Arei's Backend for xref
 
 ;;; Code:
 

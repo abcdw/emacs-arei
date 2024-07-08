@@ -1,9 +1,8 @@
-;;; arei-eldoc.el --- Eldoc support for Arei -*- lexical-binding: t; coding:utf-8 -*-
+;;; arei-eldoc.el --- Eldoc Support for Arei -*- lexical-binding: t; coding:utf-8 -*-
 
 ;; Copyright (C) 2024  Nikita Domnitskii
 
 ;; Author: Nikita Domnitskii <nikita@domnitskii.me>
-;; Keywords: languages, guile, scheme, nrepl
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -20,7 +19,7 @@
 
 ;;; Commentary:
 
-;; eldoc support for Arei
+;; Eldoc Support for Arei
 
 ;;; Code:
 

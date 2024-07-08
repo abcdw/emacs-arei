@@ -1,11 +1,9 @@
-;;; arei-spinner.el --- Evaluation spinner for arei  -*- lexical-binding: t; -*-
+;;; arei-spinner.el --- Evaluation Spinner for Arei  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024  Nikita Domnitskii
 
 ;; Author: Andrew Tropin <andrew@trop.in>
 ;;         Nikita Domnitskii <nikita@domnitskii.me>
-
-;; Keywords: languages, guile, scheme, nrepl
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -22,7 +20,7 @@
 
 ;;; Commentary:
 
-;; Evaluation spinner for arei
+;; Evaluation Spinner for Arei
 
 ;;; Code:
 
