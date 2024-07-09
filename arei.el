@@ -49,16 +49,26 @@
   :prefix "arei-"
   :group 'applications)
 
+(defcustom arei-mode-auto t
+  "Whether `arei-mode' should be active by default in all scheme buffers."
+  :type 'boolean)
+
+(defcustom arei-connection-buffer-display-function 'display-buffer
+  "Controls how to display the connection buffer on connect.
+
+When set to nil the buffer will only be created, and not
+displayed.  When it set to function the buffer will be displayed
+using this function.  `display-buffer' and `pop-to-buffer' are
+most obvious candidates here."
+  :type '(choice (function :tag "Function")
+                 (const :tag "None" nil)))
+
 (defun arei--get-command-keybindings (command)
   "Return key bindings for COMMAND as a comma-separated string."
   (let ((keys (mapcar 'key-description (where-is-internal command nil nil t))))
     (if keys
         (mapconcat 'identity keys ", ")
       "M-x ... RET")))
-
-(defcustom arei-mode-auto t
-  "Whether `arei-mode' should be active by default in all scheme buffers."
-  :type 'boolean)
 
 (defcustom arei-get-greeting-message
   (lambda ()
@@ -392,7 +402,8 @@ this function directly."
               'face
               '((t (:inherit font-lock-comment-face)))))
             (arei--initialize-session buffer initial-buffer))
-          (display-buffer buffer)
+          (when (fboundp arei-connection-buffer-display-function)
+            (funcall arei-connection-buffer-display-function buffer))
           buffer)
         (error
          (progn
