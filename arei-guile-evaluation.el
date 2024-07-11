@@ -64,14 +64,19 @@
            (insert (propertize value 'face
                                '((t (:inherit font-lock-string-face)))))
            (insert "\n"))
-         (when (member "multiple-values" status)
+
+         (when (and (member "multiple-values" status)
+                    (not (member "done" status)))
            (push value vals))
          (when (member "done" status)
            (with-current-buffer connection-buffer
-             (let* ((value (or (and vals
-                                    (mapconcat (lambda (v) (concat " => " v))
-                                               (reverse vals)
-                                               "\n"))
+             (let* ((value (or (and (member "multiple-values" status)
+                                    (if vals
+                                        (mapconcat
+                                         (lambda (v) (concat " => " v))
+                                         (reverse vals)
+                                         "\n")
+                                      " => "))
                                (and value (concat " => " value))))
                     (fmt (if value "%s" " ;; interrupted"))
                     (forward-sexp-function
