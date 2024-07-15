@@ -43,7 +43,6 @@
    #'ignore
    (arei-client--get-session-id "evaluation")))
 
-
 (defun arei--process-user-eval-response-callback
     (connection-buffer &optional expression-end)
   "Set up a handler for eval request responses."
@@ -98,17 +97,6 @@
          (when (get-buffer-window)
            (set-window-point (get-buffer-window) (buffer-size))))))))
 
-(defun arei--get-evaluation-value-callback (_connection-buffer)
-  "Set up a handler for eval request responses.  Ignores
-stdout/stderr, saves value to `arei-eval-value' buffer-local
-variable."
-  (lambda (response)
-    (pcase response
-      ((map status value)
-       (when (member "need-input" status)
-         (arei--send-stdin))
-       (setq-local arei-eval-value value)))))
-
 (defun arei--request-user-eval (code &optional bounds)
   (pcase-let* ((`(,start . ,end) bounds)
                (code (or code
@@ -132,6 +120,19 @@ variable."
      (arei-client--get-session-id "evaluation"))
     (ignore-errors (arei-spinner-start))))
 
+(defun arei--get-evaluation-value-callback (_connection-buffer)
+  "Set up a handler for eval request responses.  Ignores
+stdout/stderr, saves value to `arei-eval-value' buffer-local
+variable."
+  (lambda (response)
+    (pcase response
+      ((map status value)
+       (when (member "need-input" status)
+         (arei--send-stdin))
+       ;; Doesn't support multiple values yet, ping maintainers if you
+       ;; need this.
+       (setq-local arei-eval-value value)))))
+
 (defun arei--request-eval (code &optional connection)
   (let ((request (arei-nrepl-dict
                   "op" "eval"
@@ -145,6 +146,17 @@ variable."
      (arei--get-evaluation-value-callback (current-buffer))
      t)))
 
+(defun arei--get-expression-value (exp &optional connection)
+  (let ((request (arei-nrepl-dict
+                  "op" "eval"
+                  "code" exp)))
+    (when-let* ((module (arei-current-module)))
+      (arei-nrepl-dict-put request "ns" module))
+    (thread-first
+      request
+      (arei-send-sync-request connection t)
+      (arei-nrepl-dict-get "value"))))
+
 (defun arei-interrupt-evaluation (&optional session-id)
   "Interrupt evaluation for a particular SESSION-ID, if no
 SESSION-ID specified interrupt default user's evaluation session."
@@ -154,6 +166,11 @@ SESSION-ID specified interrupt default user's evaluation session."
    (arei-connection-buffer)
    #'ignore
    (or session-id (arei-client--get-session-id "evaluation"))))
+
+
+;;;
+;;; Wrappers for user-eval
+;;;
 
 (defun arei-evaluate-region (start end)
   (interactive "r")
@@ -165,17 +182,6 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
   (interactive
    (list (read-from-minibuffer "Expression: " nil nil nil 'arei-expression)))
   (arei--request-user-eval exp))
-
-(defun arei--get-expression-value (exp &optional connection)
-  (let ((request (arei-nrepl-dict
-                  "op" "eval"
-                  "code" exp)))
-    (when-let* ((module (arei-current-module)))
-      (arei-nrepl-dict-put request "ns" module))
-    (thread-first
-      request
-      (arei-send-sync-request connection t)
-      (arei-nrepl-dict-get "value"))))
 
 (defun arei-evaluate-last-sexp ()
   (interactive)
