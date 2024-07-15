@@ -36,6 +36,7 @@
 (require 'arei-completion)
 (require 'arei-spinner)
 (require 'arei-guile-evaluation)
+(require 'arei-guile-module)
 (require 'arei-guile-macroexpansion)
 (require 'scheme)
 (require 'sesman)
