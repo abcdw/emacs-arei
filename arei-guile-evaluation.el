@@ -194,7 +194,7 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
   (interactive)
   (arei--request-user-eval nil (arei-syntax-buffer-bounds)))
 
-(defun arei-evaluate-defun ()
+(defun arei-evaluate-top-level-form ()
   (interactive)
   (arei--request-user-eval nil (arei-syntax-current-top-level-form)))
 

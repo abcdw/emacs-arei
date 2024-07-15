@@ -451,8 +451,8 @@ variable to nil to disable the mode line entirely.")
   "C-c C-z" #'arei-switch-to-connection-buffer
   "C-c C-m" arei-guile-macroexpansion-map
 
-  "C-M-x" #'arei-evaluate-defun
-  "C-c C-c" #'arei-evaluate-defun)
+  "C-M-x" #'arei-evaluate-top-level-form
+  "C-c C-c" #'arei-evaluate-top-level-form)
 
 ;;;###autoload
 (define-minor-mode arei-mode
