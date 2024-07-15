@@ -104,11 +104,10 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
   "Return t if Arei is currently connected, nil otherwise."
   (process-live-p (arei-connection)))
 
-(defun arei-client--evaluation-session ()
-  (gethash "evaluation" arei-client--nrepl-sessions))
-
-(defun arei-client--tooling-session ()
-  (gethash "tooling" arei-client--nrepl-sessions))
+(defun arei-client--get-session-id (name)
+  "Get session-id from session NAME."
+  (with-current-buffer (arei-connection-buffer)
+    (gethash name arei-client--nrepl-sessions)))
 
 (defun arei-send-sync-request (request &optional connection with-session)
   "Send request to nREPL server synchronously."
@@ -142,7 +141,7 @@ use tooling session, nil use no session."
       ;; TODO: [Andrew Tropin, 2023-11-20] Ensure that session is created
       ;; at the moment of calling, otherwise put a request into callback.
       (when-let* ((session (if (eq session-id t)
-                               (arei-client--tooling-session)
+                               (arei-client--get-session-id "tooling")
                              session-id)))
         (arei-nrepl-dict-put request "session" session))
       (arei-nrepl-dict-put request "id" id)
