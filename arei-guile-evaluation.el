@@ -29,17 +29,21 @@
 
 (eval-when-compile (require 'map))
 (eval-when-compile (require 'pcase))
+
 (defun arei--send-stdin (&optional connection)
-  (arei-send-request
-   (arei-nrepl-dict
-    "op" "stdin"
-    "stdin"
-    (condition-case nil
-        (concat (read-from-minibuffer "Stdin: " nil) "\n")
-      (quit nil)))
-   (or connection (arei-connection-buffer))
-   #'ignore
-   t))
+  (let* ((connection-buffer (or connection (arei-connection-buffer)))
+         (evaluation-session (with-current-buffer connection-buffer
+                               (arei-client--evaluation-session))))
+    (arei-send-request
+     (arei-nrepl-dict
+      "op" "stdin"
+      "stdin"
+      (condition-case nil
+          (concat (read-from-minibuffer "Stdin: " nil) "\n")
+        (quit nil)))
+     connection-buffer
+     #'ignore
+     evaluation-session)))
 
 
 (defun arei--process-user-eval-response-callback
@@ -123,11 +127,15 @@ variable."
                                      (goto-char start)
                                      (current-column)))))
       (arei-nrepl-dict-put request "column" column))
-    (arei-send-request
-     request
-     (arei-connection-buffer)
-     (arei--process-user-eval-response-callback (current-buffer) end)
-     t)
+    (let* ((connection-buffer (arei-connection-buffer))
+           (evaluation-session (with-current-buffer connection-buffer
+                                 (arei-client--evaluation-session))))
+      (message "eval session: %s" evaluation-session)
+      (arei-send-request
+       request
+       connection-buffer
+       (arei--process-user-eval-response-callback (current-buffer) end)
+       evaluation-session))
     (ignore-errors (arei-spinner-start))))
 
 (defun arei--request-eval (code &optional connection)
