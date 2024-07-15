@@ -228,11 +228,11 @@ This function also removes itself from `pre-command-hook'."
          (message "Connected to nREPL server.")
          (when callback (funcall callback))
          (setq-local arei--nrepl-session new-session)
-         (puthash session-name new-session arei-client--sessions))))))
+         (puthash session-name new-session arei-client--nrepl-sessions))))))
 
 (defun arei--create-nrepl-session (connection session-name &optional callback)
   "Setups an nrepl session and register it in `arei--nrepl-sessions'."
-  (puthash session-name nil arei-client--sessions)
+  (puthash session-name nil arei-client--nrepl-sessions)
   (arei-send-request
    (arei-nrepl-dict "op" "clone")
    connection
@@ -393,7 +393,7 @@ this function directly."
           (with-current-buffer buffer
             (arei-connection-mode)
             (setq arei--request-counter 0)
-            (setq arei-client--sessions (make-hash-table :test 'equal))
+            (setq arei-client--nrepl-sessions (make-hash-table :test 'equal))
             (setq arei-client--pending-requests (make-hash-table :test 'equal))
             ;; Set the current working directory for the connection buffer
             ;; to the project root.

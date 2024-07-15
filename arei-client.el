@@ -58,7 +58,7 @@ and responses.")
 (defvar-local arei-client--pending-requests nil
   "A hash-table containing callbacks for pending requests.")
 
-(defvar-local arei-client--sessions nil
+(defvar-local arei-client--nrepl-sessions nil
   "A hash-table containing name and session-id association.")
 
 (defvar arei-client-sync-timeout 5
@@ -105,10 +105,10 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
   (process-live-p (arei-connection)))
 
 (defun arei-client--evaluation-session ()
-  (gethash "evaluation" arei-client--sessions))
+  (gethash "evaluation" arei-client--nrepl-sessions))
 
 (defun arei-client--tooling-session ()
-  (gethash "tooling" arei-client--sessions))
+  (gethash "tooling" arei-client--nrepl-sessions))
 
 (defun arei-send-sync-request (request &optional connection with-session)
   "Send request to nREPL server synchronously."
