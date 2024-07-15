@@ -144,13 +144,15 @@ variable."
      (arei--get-evaluation-value-callback (current-buffer))
      t)))
 
-(defun arei-interrupt-evaluation ()
+(defun arei-interrupt-evaluation (&optional session-id)
+  "Interrupt evaluation for a particular SESSION-ID, if no
+SESSION-ID specified interrupt default user's evaluation session."
   (interactive)
   (arei-send-request
    (arei-nrepl-dict "op" "interrupt")
    (arei-connection-buffer)
    #'ignore
-   t))
+   (or session-id (arei-client--get-session-id "evaluation"))))
 
 (defun arei-evaluate-region (start end)
   (interactive "r")
