@@ -275,9 +275,13 @@ greeting message."
       '((t (:inherit font-lock-comment-face)))))
     (insert "\n")))
 
-(defun arei--initialize-session (connection initial-buffer)
+(defun arei--initialize-sessions (connection initial-buffer)
   "Initialize a session, use INITIAL-BUFFER to generate a correct
 keybindings info in greeting message."
+  (arei--create-nrepl-session
+   connection
+   "evaluation"
+   (lambda ()))
   (arei--create-nrepl-session
    connection
    "tooling"
@@ -401,7 +405,7 @@ this function directly."
               (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)
               'face
               '((t (:inherit font-lock-comment-face)))))
-            (arei--initialize-session buffer initial-buffer))
+            (arei--initialize-sessions buffer initial-buffer))
           (when (fboundp arei-connection-buffer-display-function)
             (funcall arei-connection-buffer-display-function buffer))
           buffer)
