@@ -51,7 +51,7 @@ preciese way."
               (re-search-forward arei--library-re nil t))
       (match-string-no-properties 1))))
 
-(defvar-local arei--request-counter 0
+(defvar-local arei-client--request-counter 0
   "Serial number for message, used for association between request
 and responses.")
 
@@ -137,7 +137,7 @@ SESSION-ID should be either session-id, t or nil.  If SESSION-ID is t,
 use tooling session, nil use no session."
   (unless connection (error "No nREPL connection for current session"))
   (with-current-buffer connection
-    (let* ((id (number-to-string (cl-incf arei--request-counter))))
+    (let* ((id (number-to-string (cl-incf arei-client--request-counter))))
       ;; TODO: [Andrew Tropin, 2023-11-20] Ensure that session is created
       ;; at the moment of calling, otherwise put a request into callback.
       (when-let* ((session (if (eq session-id t)

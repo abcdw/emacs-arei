@@ -392,7 +392,7 @@ this function directly."
 
           (with-current-buffer buffer
             (arei-connection-mode)
-            (setq arei--request-counter 0)
+            (setq arei-client--request-counter 0)
             (setq arei-client--nrepl-sessions (make-hash-table :test 'equal))
             (setq arei-client--pending-requests (make-hash-table :test 'equal))
             ;; Set the current working directory for the connection buffer
