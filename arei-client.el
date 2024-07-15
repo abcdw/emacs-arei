@@ -104,7 +104,10 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
   "Return t if Arei is currently connected, nil otherwise."
   (process-live-p (arei-connection)))
 
-(defun arei-client--current-session ()
+(defun arei-client--evaluation-session ()
+  (gethash "evaluation" arei-client--sessions))
+
+(defun arei-client--tooling-session ()
   (gethash "tooling" arei-client--sessions))
 
 (defun arei-send-sync-request (request &optional connection with-session)
@@ -127,16 +130,20 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
       (accept-process-output nil 0.01))
     response))
 
-(defun arei-send-request (request connection callback &optional with-session)
+(defun arei-send-request (request connection callback &optional session-id)
   "Send REQUEST and assign CALLBACK.
-The CALLBACK function will be called when reply is received."
+The CALLBACK function will be called when reply is received.
+
+SESSION-ID should be either session-id, t or nil.  If SESSION-ID is t,
+use tooling session, nil use no session."
   (unless connection (error "No nREPL connection for current session"))
   (with-current-buffer connection
     (let* ((id (number-to-string (cl-incf arei--request-counter))))
       ;; TODO: [Andrew Tropin, 2023-11-20] Ensure that session is created
       ;; at the moment of calling, otherwise put a request into callback.
-      (when-let* ((session (and with-session
-                                (arei-client--current-session))))
+      (when-let* ((session (if (eq session-id t)
+                               (arei-client--tooling-session)
+                             session-id)))
         (arei-nrepl-dict-put request "session" session))
       (arei-nrepl-dict-put request "id" id)
       (puthash id callback arei-client--pending-requests)
