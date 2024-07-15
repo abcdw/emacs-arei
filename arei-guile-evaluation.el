@@ -198,5 +198,13 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
   (interactive)
   (arei--request-user-eval nil (arei-syntax-current-top-level-form)))
 
+(defvar-keymap arei-evaluation-keymap
+  "C-e" #'arei-evaluate-last-sexp
+  "C-b" #'arei-evaluate-buffer
+  "C-r" #'arei-evaluate-region
+  "C-t" #'arei-evaluate-top-level-form
+  ":" #'arei-evaluate-sexp
+  "C-i" #'arei-interrupt-evaluation)
+
 (provide 'arei-guile-evaluation)
 ;;; arei-guile-evaluation.el ends here

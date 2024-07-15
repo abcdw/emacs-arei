@@ -444,11 +444,11 @@ variable to nil to disable the mode line entirely.")
 (put 'arei-mode-line 'risky-local-variable t)
 
 (defvar-keymap arei-mode-map
-  "C-x C-e" #'arei-evaluate-last-sexp
-  "C-c C-e" #'arei-evaluate-last-sexp
-  "C-c C-k" #'arei-evaluate-buffer
-  "C-c C-b" #'arei-interrupt-evaluation
   "C-c C-z" #'arei-switch-to-connection-buffer
+  "C-c C-e" arei-evaluation-keymap
+  "C-x C-e" #'arei-evaluate-last-sexp
+  "C-c C-k" #'arei-evaluate-buffer
+  "C-c C-i" #'arei-interrupt-evaluation
   "C-c C-m" arei-guile-macroexpansion-map
 
   "C-M-x" #'arei-evaluate-top-level-form
