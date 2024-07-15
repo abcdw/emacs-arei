@@ -24,6 +24,7 @@
 ;;; Code:
 
 (require 'arei-client)
+(require 'arei-syntax)
 (require 'arei-nrepl)
 
 (eval-when-compile (require 'map))

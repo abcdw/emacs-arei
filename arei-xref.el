@@ -27,6 +27,7 @@
 
 (require 'arei-nrepl)
 (require 'arei-client)
+(require 'arei-syntax)
 (require 'xref)
 
 (defun arei--xref-backend () 'arei)

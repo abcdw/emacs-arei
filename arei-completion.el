@@ -28,6 +28,7 @@
 (require 'arei-client)
 (require 'arei-nrepl)
 (require 'arei-eldoc)
+(require 'arei-syntax)
 (eval-when-compile (require 'map))
 (eval-when-compile (require 'pcase))
 

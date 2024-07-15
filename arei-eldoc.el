@@ -25,6 +25,7 @@
 
 (require 'arei-client)
 (require 'arei-nrepl)
+(require 'arei-syntax)
 (require 'map)
 (eval-when-compile (require 'subr-x))
 (eval-when-compile (require 'pcase))

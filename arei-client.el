@@ -28,29 +28,6 @@
 (require 'sesman)
 (require 'map)
 
-(defconst arei--module-re
-  "^[[:blank:]]*([[:blank:]\n]*define-module[[:blank:]\n]+\\(([^)]+)\\)"
-  "Regular expression matching a top-level definition of the module.")
-
-(defconst arei--library-re
-  "^[[:blank:]]*([[:blank:]\n]*\\(?:define-\\)?library[[:blank:]\n]+\\(([^)]+)\\)"
-  "Regular expression matching a top-level definition of the library.")
-
-(defun arei-current-module ()
-  "Find current buffer's module.  It goes backwards and looking for
-`arei--module-re' or `arei--library-re' to match, after that it
-goes the opposite direction.  This logic is not perfect, but
-works good enough for this amount of code.  Also, it's similar
-to geiser and cider approaches.  In the future it would be better
-to extract this information from tree-sitter or some other more
-preciese way."
-  (save-excursion
-    (when (or (re-search-backward arei--module-re nil t)
-              (re-search-backward arei--library-re nil t)
-              (re-search-forward arei--module-re nil t)
-              (re-search-forward arei--library-re nil t))
-      (match-string-no-properties 1))))
-
 (defvar-local arei-client--request-counter 0
   "Serial number for message, used for association between request
 and responses.")
