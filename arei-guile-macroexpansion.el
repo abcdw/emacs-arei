@@ -84,11 +84,7 @@
 
 (defun arei-guile-macroexpand-last-sexp ()
   (interactive)
-  (save-excursion
-    (let ((end (point))
-          (start (progn (backward-sexp)
-                        (point))))
-      (arei--request-guile-macroexpand nil (cons start end)))))
+  (arei--request-guile-macroexpand nil (arei-syntax-last-sexp-bounds)))
 
 (defvar-keymap arei-guile-macroexpansion-map
   "C-m" #'arei-guile-macroexpand-last-sexp)

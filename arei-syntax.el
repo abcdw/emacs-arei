@@ -46,4 +46,28 @@ preciese way."
               (re-search-forward arei-syntax--library-re nil t))
       (match-string-no-properties 1))))
 
+(defun arei-syntax-last-sexp-bounds ()
+  "Return bounds of last S-expression."
+  (save-excursion
+    (let ((end (point))
+          (start (progn (backward-sexp)
+                        (point))))
+      (cons start end))))
+
+(defun arei-syntax-current-top-level-form ()
+  "Return bounds of current top-level-form."
+  (save-excursion
+    (let ((end (progn (end-of-defun) (point)))
+          (start (progn (beginning-of-defun) (point))))
+      (cons start end))))
+
+(defun arei-syntax-buffer-bounds ()
+  "Return bounds of the buffer."
+  (cons (point-min) (point-max)))
+
+;; TODO: [Andrew Tropin, 2024-07-15] Implement
+;; arei-syntax-thing-at-point, it's necessary for easier migration to
+;; tree-sitter in the future, more precise selection of a thing at
+;; point and support for other languages.
+
 (provide 'arei-syntax)

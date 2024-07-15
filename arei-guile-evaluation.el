@@ -179,22 +179,15 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
 
 (defun arei-evaluate-last-sexp ()
   (interactive)
-  (save-excursion
-    (let ((end (point))
-          (start (progn (backward-sexp)
-                        (point))))
-      (arei--request-user-eval nil (cons start end)))))
+  (arei--request-user-eval nil (arei-syntax-last-sexp-bounds)))
 
 (defun arei-evaluate-buffer ()
   (interactive)
-  (arei--request-user-eval nil (cons (point-min) (point-max))))
+  (arei--request-user-eval nil (arei-syntax-buffer-bounds)))
 
 (defun arei-evaluate-defun ()
   (interactive)
-  (save-excursion
-    (let ((end (progn (end-of-defun) (point)))
-          (start (progn (beginning-of-defun) (point))))
-      (arei--request-user-eval nil (cons start end)))))
+  (arei--request-user-eval nil (arei-syntax-current-top-level-form)))
 
 (provide 'arei-guile-evaluation)
 ;;; arei-guile-evaluation.el ends here
