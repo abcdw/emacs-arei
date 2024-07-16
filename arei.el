@@ -264,7 +264,9 @@ this function directly."
           (thread-first
             (arei--create-params-plist arg)
             (arei--select-endpoint)))))
-    (arei--insert-greeting-message connection-buffer)))
+    (arei--insert-greeting-message connection-buffer)
+    (when (fboundp arei-connection-buffer-display-function)
+      (funcall arei-connection-buffer-display-function connection-buffer))))
 
 
 ;;;

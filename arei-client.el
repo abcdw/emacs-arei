@@ -183,8 +183,6 @@ and responses.")
               'face
               '((t (:inherit font-lock-comment-face)))))
             (arei--initialize-sessions buffer))
-          (when (fboundp arei-connection-buffer-display-function)
-            (funcall arei-connection-buffer-display-function buffer))
           buffer)
         (error
          (progn
