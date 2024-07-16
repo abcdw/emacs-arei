@@ -32,7 +32,7 @@
 (eval-when-compile (require 'pcase))
 
 (defun arei--send-stdin ()
-  (arei-send-request
+  (arei-client-send-request
    (arei-nrepl-dict
     "op" "stdin"
     "stdin"
@@ -114,7 +114,7 @@
                                      (goto-char start)
                                      (current-column)))))
       (arei-nrepl-dict-put request "column" column))
-    (arei-send-request
+    (arei-client-send-request
      request
      (arei--process-user-eval-response-callback (current-buffer) end)
      (arei--user-evaluation-session-id))
@@ -140,7 +140,7 @@ variable."
         (module (arei-current-module)))
     (when module
       (arei-nrepl-dict-put request "ns" module))
-    (arei-send-request
+    (arei-client-send-request
      request
      (or connection (arei-connection-buffer))
      (arei--get-evaluation-value-callback (current-buffer))
@@ -154,7 +154,7 @@ variable."
       (arei-nrepl-dict-put request "ns" module))
     (thread-first
       request
-      (arei-send-sync-request (arei--tooling-session-id)))))
+      (arei-client-send-sync-request (arei--tooling-session-id)))))
 
 (defun arei--get-expression-value (exp)
   (arei-nrepl-dict-get (arei--sync-eval exp) "value"))
@@ -163,7 +163,7 @@ variable."
   "Interrupt evaluation for a particular SESSION-ID, if no
 SESSION-ID specified interrupt default user's evaluation session."
   (interactive)
-  (arei-send-request
+  (arei-client-send-request
    (arei-nrepl-dict "op" "interrupt")
    #'ignore
    (or session-id (arei--user-evaluation-session-id))))

@@ -130,7 +130,7 @@ Intended for `eldoc-documentation-functions' (which see)."
                      "sym" sym)))
            (when-let* ((module (arei-current-module)))
              (arei-nrepl-dict-put req "ns" module))
-           (arei-send-request
+           (arei-client-send-request
             req
             (arei-eldoc--callback sym pos callback)
             (arei--tooling-session-id))

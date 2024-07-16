@@ -75,7 +75,7 @@
                          "code" code)))
     (when-let* ((module (arei-current-module)))
       (arei-nrepl-dict-put request "module" module))
-    (arei-send-request
+    (arei-client-send-request
      request
      (arei--process-guile-macroexpand-response-callback (current-buffer) end)
      (arei--tooling-session-id))

@@ -97,9 +97,9 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
 ;; using primary connection buffer.  Also, adding
 ;; `arei-set-default-nrepl-session' may help for eval and switch
 ;; operations.
-(defun arei--create-nrepl-session (session-name &optional callback)
-  "Setups an nrepl session and register it in `arei--nrepl-sessions'."
-  (let* ((response (arei-send-sync-request (arei-nrepl-dict "op" "clone") nil))
+(defun arei-client--create-nrepl-session (session-name &optional callback)
+  "Setups an nrepl session and register it in `arei-client--nrepl-sessions'."
+  (let* ((response (arei-client-send-sync-request (arei-nrepl-dict "op" "clone") nil))
          (new-session (arei-nrepl-dict-get response "new-session")))
     (if (not new-session)
         (error "nREPL session is not created.")
@@ -108,7 +108,7 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
       (funcall callback session-name response)
       new-session)))
 
-(defun arei--nrepl-session-creation-callback (session-name response)
+(defun arei-client--nrepl-session-creation-callback (session-name response)
   "Display information about created session."
   (with-current-buffer (arei-connection-buffer)
     (goto-char (point-max))
@@ -118,14 +118,14 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
       'face
       '((t (:inherit font-lock-comment-face)))))))
 
-(defun arei--initialize-nrepl-sessions ()
+(defun arei-client--initialize-nrepl-sessions ()
   "Initialize sessions needed for Arei operation."
-  (arei--create-nrepl-session
+  (arei-client--create-nrepl-session
    "evaluation"
-   'arei--nrepl-session-creation-callback)
-  (arei--create-nrepl-session
+   'arei-client--nrepl-session-creation-callback)
+  (arei-client--create-nrepl-session
    "tooling"
-   'arei--nrepl-session-creation-callback))
+   'arei-client--nrepl-session-creation-callback))
 
 (defun arei-client--get-session-id (name)
   "Get session-id for session NAME."
@@ -145,7 +145,9 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
   "Get session-id for session NAME, create session if it doesn't
 exist."
   (or (arei-client--get-session-id name)
-      (arei--create-nrepl-session name 'arei--nrepl-session-creation-callback)))
+      (arei-client--create-nrepl-session
+       name
+       'arei-client--nrepl-session-creation-callback)))
 
 
 ;;;
@@ -175,7 +177,7 @@ exist."
 ;;; Connection
 ;;;
 
-(defun arei--sentinel (process message)
+(defun arei-client--sentinel (process message)
   "Called when connection is changed; in out case dropped."
   (with-current-buffer (process-buffer process)
     (sesman-quit))
@@ -185,7 +187,7 @@ exist."
   (run-hooks 'sesman-post-command-hook))
 
 ;; TODO: [Andrew Tropin, 2023-10-19] Handle incomplete incomming string.
-(defun arei--connection-filter (process string)
+(defun arei-client--connection-filter (process string)
   "Decode message(s) from PROCESS contained in STRING and dispatch them."
   (let ((string-q (process-get process :string-q)))
     (queue-enqueue string-q string)
@@ -200,9 +202,9 @@ exist."
               ;; (with-demoted-errors
               ;;     "Error in one of the `nrepl-response-handler-functions': %s"
               ;;   (run-hook-with-args 'nrepl-response-handler-functions response))
-              (arei--dispatch-response response))))))))
+              (arei-client--dispatch-response response))))))))
 
-(defun arei--dispatch-response (response)
+(defun arei-client--dispatch-response (response)
   "Find associated callback for a message by id."
   (pcase response
     ((map id status)
@@ -212,7 +214,7 @@ exist."
          (when (member "done" status)
            (remhash id arei-client--pending-requests)))))))
 
-(defun arei--connect (params)
+(defun arei-client--connect (params)
   "Call callback after connection is established."
   (let* ((host (plist-get params :host))
          (port (number-to-string (plist-get params :port)))
@@ -235,8 +237,8 @@ exist."
                          buffer-name host port))
                (buffer (process-buffer process)))
           (set-process-coding-system process 'utf-8-unix 'utf-8-unix)
-          (set-process-filter process 'arei--connection-filter)
-          (set-process-sentinel process 'arei--sentinel)
+          (set-process-filter process 'arei-client--connection-filter)
+          (set-process-sentinel process 'arei-client--sentinel)
           (process-put process :string-q (queue-create))
           (process-put process :response-q (arei-nrepl-response-queue))
 
@@ -258,7 +260,7 @@ exist."
               (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)
               'face
               '((t (:inherit font-lock-comment-face)))))
-            (arei--initialize-nrepl-sessions))
+            (arei-client--initialize-nrepl-sessions))
           (message "Connection to the nREPL server initialized.")
           buffer)
         (error
@@ -278,8 +280,9 @@ exist."
 ;;; Requests
 ;;;
 
-(defun arei--send-request (request connection callback session-id)
-  "Internal API for `arei-send-request', it should NOT be used directly."
+(defun arei-client--send-request (request connection callback session-id)
+  "Internal API for `arei-client-send-request', it should NOT be
+ used directly."
   (unless connection (error "No nREPL connection for current session"))
   (with-current-buffer connection
     (let* ((id (number-to-string (cl-incf arei-client--request-counter))))
@@ -291,14 +294,14 @@ exist."
       (puthash id callback arei-client--pending-requests)
       (process-send-string nil (arei-nrepl-bencode request)))))
 
-(defun arei--send-sync-request (request connection session-id)
-  "Internal API for `arei-send-sync-request', it should NOT be used
-directly."
+(defun arei-client--send-sync-request (request connection session-id)
+  "Internal API for `arei-client-send-sync-request', it should
+ NOT be used directly."
   (let ((time0 (current-time))
         response
         global-status)
     (unless connection (error "No nREPL connection for current session"))
-    (arei--send-request
+    (arei-client--send-request
      request
      connection
      (lambda (resp) (setq response resp))
@@ -311,17 +314,21 @@ directly."
       (accept-process-output nil 0.01))
     response))
 
-(defun arei-send-request (request callback session-id)
+(defun arei-client-send-request (request callback session-id)
   "Send REQUEST and assign CALLBACK.
 The CALLBACK function will be called when reply is received.
 
 SESSION-ID should be either session-id or nil.  nil is for
 ephemeral session."
-  (arei--send-request request (arei-connection-buffer) callback session-id))
+  (arei-client--send-request
+   request
+   (arei-connection-buffer)
+   callback
+   session-id))
 
-(defun arei-send-sync-request (request session-id)
+(defun arei-client-send-sync-request (request session-id)
   "Send request to nREPL server synchronously."
-  (arei--send-sync-request request (arei-connection-buffer) session-id))
+  (arei-client--send-sync-request request (arei-connection-buffer) session-id))
 
 (provide 'arei-client)
 ;;; arei-client.el ends here

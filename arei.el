@@ -119,10 +119,10 @@ Development related and other commands:
   (let* ((conn (cadr session))
          (file (buffer-file-name))
          (tooling-session (with-current-buffer conn
-                            (gethash "tooling" arei--nrepl-sessions)))
+                            (gethash "tooling" arei-client--nrepl-sessions)))
          (load-path (thread-first
                       (arei-nrepl-dict "op" "ares.guile.utils/load-path")
-                      (arei--send-sync-request conn tooling-session)
+                      (arei-client--send-sync-request conn tooling-session)
                       (arei-nrepl-dict-get "load-path"))))
     (seq-find (lambda (path) (string-prefix-p path file)) load-path)))
 
@@ -242,7 +242,7 @@ minibuffer if called with prefix argument.  Users should not call
 this function directly."
   (interactive "P")
   (let ((connection-buffer
-         (arei--connect
+         (arei-client--connect
           (thread-first
             (arei--create-params-plist arg)
             (arei--select-endpoint)))))

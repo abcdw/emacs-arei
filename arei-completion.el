@@ -78,7 +78,7 @@
                                      "extra-metadata" '("arglists" "docs")))))
       (when-let* ((module (arei-current-module)))
         (arei-nrepl-dict-put request "ns" module))
-      (when-let* ((response (arei-send-sync-request
+      (when-let* ((response (arei-client-send-sync-request
                              request
                              (arei--tooling-session-id)))
                   (completions (arei-nrepl-dict-get response "completions")))
