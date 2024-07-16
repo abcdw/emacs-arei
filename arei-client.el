@@ -182,7 +182,7 @@ and responses.")
               (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)
               'face
               '((t (:inherit font-lock-comment-face)))))
-            (arei--initialize-sessions buffer))
+            (arei--initialize-nrepl-sessions buffer))
           buffer)
         (error
          (progn
