@@ -54,9 +54,8 @@ and responses.")
   (with-current-buffer (arei-connection-buffer)
     (gethash name arei-client--nrepl-sessions)))
 
-(defun arei--initialize-sessions (connection initial-buffer)
-  "Initialize a session, use INITIAL-BUFFER to generate a correct
-keybindings info in greeting message."
+(defun arei--initialize-nrepl-sessions (connection)
+  "Initialize sessions needed for Arei operation."
   (arei--create-nrepl-session
    connection
    "evaluation"
@@ -158,8 +157,7 @@ keybindings info in greeting message."
         (let* ((process (open-network-stream
                          (concat "nrepl-connection-" host-and-port)
                          buffer-name host port))
-               (buffer (process-buffer process))
-               (initial-buffer (current-buffer)))
+               (buffer (process-buffer process)))
           (set-process-coding-system process 'utf-8-unix 'utf-8-unix)
           (set-process-filter process 'arei--connection-filter)
           (set-process-sentinel process 'arei--sentinel)
@@ -184,7 +182,7 @@ keybindings info in greeting message."
               (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)
               'face
               '((t (:inherit font-lock-comment-face)))))
-            (arei--initialize-sessions buffer initial-buffer))
+            (arei--initialize-sessions buffer))
           (when (fboundp arei-connection-buffer-display-function)
             (funcall arei-connection-buffer-display-function buffer))
           buffer)
