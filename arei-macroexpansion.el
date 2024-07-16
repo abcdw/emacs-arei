@@ -1,4 +1,4 @@
-;;; arei-guile-macroexpansion.el --- Guile Macroexpansion for Arei  -*- lexical-binding: t; -*-
+;;; arei-macroexpansion.el --- Macroexpansion for Arei  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2024 Andrew Tropin <andrew@trop.in>
 
@@ -19,7 +19,7 @@
 
 ;;; Commentary:
 
-;; Guile Macroexpansion for Arei
+;; Macroexpansion for Arei
 
 ;;; Code:
 
@@ -82,12 +82,12 @@
      t)
     (ignore-errors (arei-spinner-start))))
 
-(defun arei-guile-macroexpand-last-sexp ()
+(defun arei-macroexpand-last-sexp ()
   (interactive)
   (arei--request-guile-macroexpand nil (arei-syntax-last-sexp-bounds)))
 
-(defvar-keymap arei-guile-macroexpansion-map
-  "C-m" #'arei-guile-macroexpand-last-sexp)
+(defvar-keymap arei-macroexpansion-map
+  "C-m" #'arei-macroexpand-last-sexp)
 
-(provide 'arei-guile-macroexpansion)
-;;; arei-guile-macroexpansion.el ends here
+(provide 'arei-macroexpansion)
+;;; arei-macroexpansion.el ends here

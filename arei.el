@@ -37,7 +37,7 @@
 (require 'arei-spinner)
 (require 'arei-evaluation)
 (require 'arei-module)
-(require 'arei-guile-macroexpansion)
+(require 'arei-macroexpansion)
 (require 'scheme)
 (require 'sesman)
 (require 'eros)
@@ -450,7 +450,7 @@ variable to nil to disable the mode line entirely.")
   "C-c C-k" #'arei-evaluate-buffer
   "C-c C-i" #'arei-interrupt-evaluation
   "C-c M-m" arei-module-map
-  "C-c C-m" arei-guile-macroexpansion-map
+  "C-c C-m" arei-macroexpansion-map
 
   "C-M-x" #'arei-evaluate-top-level-form
   "C-c C-c" #'arei-evaluate-top-level-form)
