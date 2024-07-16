@@ -44,10 +44,156 @@ and responses.")
 (defvar arei-client--session-cache (make-hash-table :test 'equal)
   "Session cache for `arei-connection-buffer'.")
 
+
+;;;
+;;; nREPL Sessions
+;;;
+
 (defun arei-client--get-session-id (name)
   "Get session-id from session NAME."
   (with-current-buffer (arei-connection-buffer)
     (gethash name arei-client--nrepl-sessions)))
+
+(defun arei--initialize-sessions (connection initial-buffer)
+  "Initialize a session, use INITIAL-BUFFER to generate a correct
+keybindings info in greeting message."
+  (arei--create-nrepl-session
+   connection
+   "evaluation"
+   (lambda ()))
+  (arei--create-nrepl-session
+   connection
+   "tooling"
+   (lambda ())))
+
+
+;;;
+;;; Connection
+;;;
+
+;; TODO: [Andrew Tropin, 2023-11-20] Add association between session
+;; and output buffer for it.  It's needed to support multiple nrepl
+;; sessions that can use separate buffers for stdin/stdout instead of
+;; using primary connection buffer.  Also, adding
+;; `arei-set-default-nrepl-session' may help for eval and switch
+;; operations.
+(defun arei--new-nrepl-session-handler (session-name &optional callback)
+  "Returns callback that is called when new session is created."
+  (lambda (response)
+    (pcase response
+      ((map new-session)
+       (when new-session
+         (insert
+          (propertize
+           (format ";;; nREPL session created: %s\n" session-name)
+           'face
+           '((t (:inherit font-lock-comment-face)))))
+         (message "Connected to nREPL server.")
+         (when callback (funcall callback))
+         (setq-local arei--nrepl-session new-session)
+         (puthash session-name new-session arei-client--nrepl-sessions))))))
+
+(defun arei--create-nrepl-session (connection session-name &optional callback)
+  "Setups an nrepl session and register it in `arei--nrepl-sessions'."
+  (puthash session-name nil arei-client--nrepl-sessions)
+  (arei-send-request
+   (arei-nrepl-dict "op" "clone")
+   connection
+   (arei--new-nrepl-session-handler session-name callback)))
+
+
+(defun arei--sentinel (process message)
+  "Called when connection is changed; in out case dropped."
+  (with-current-buffer (process-buffer process)
+    (sesman-quit))
+  (message "nREPL connection closed: %s" message)
+  ;; NOTE: sesman-post-command-hook is not run when connection buffer is
+  ;; killed, so we run it here just in case
+  (run-hooks 'sesman-post-command-hook))
+
+;; TODO: [Andrew Tropin, 2023-10-19] Handle incomplete incomming string.
+(defun arei--connection-filter (process string)
+  "Decode message(s) from PROCESS contained in STRING and dispatch them."
+  (let ((string-q (process-get process :string-q)))
+    (queue-enqueue string-q string)
+    ;; Start decoding only if the last letter is 'e'
+    (when (eq ?e (aref string (1- (length string))))
+      (let ((response-q (process-get process :response-q)))
+        (arei-nrepl-bdecode string-q response-q)
+        (while (queue-head response-q)
+          (with-current-buffer (process-buffer process)
+            (let ((response (queue-dequeue response-q)))
+              ;; (message "response: %s\n" response)
+              ;; (with-demoted-errors
+              ;;     "Error in one of the `nrepl-response-handler-functions': %s"
+              ;;   (run-hook-with-args 'nrepl-response-handler-functions response))
+              (arei--dispatch-response response))))))))
+
+(defun arei--dispatch-response (response)
+  "Find associated callback for a message by id."
+  (pcase response
+    ((map id status)
+     (when-let* ((callback (gethash id arei-client--pending-requests)))
+       (when callback
+         (funcall callback response)
+         (when (member "done" status)
+           (remhash id arei-client--pending-requests)))))))
+
+(defun arei--connect (params)
+  "Call callback after connection is established."
+  (let* ((host (plist-get params :host))
+         (port (number-to-string (plist-get params :port)))
+         (host-and-port (concat host ":" port))
+         (project (project-current))
+         (session-prefix (if project (project-name project) (buffer-name)))
+         (sesman-session-name (concat session-prefix ":" host-and-port))
+         ;; TODO: [Andrew Tropin, 2023-11-20] Handle the case when the
+         ;; buffer already exists.
+         (buffer-name (concat "*arei: " sesman-session-name "*")))
+
+    ;; Prevent function being called directly, bypassing sesman
+    ;; machinery and thus cleanup phaseses.
+    (when (get-buffer buffer-name)
+      (user-error "Connection buffer already exist."))
+
+    (condition-case err
+        (let* ((process (open-network-stream
+                         (concat "nrepl-connection-" host-and-port)
+                         buffer-name host port))
+               (buffer (process-buffer process))
+               (initial-buffer (current-buffer)))
+          (set-process-coding-system process 'utf-8-unix 'utf-8-unix)
+          (set-process-filter process 'arei--connection-filter)
+          (set-process-sentinel process 'arei--sentinel)
+          (process-put process :string-q (queue-create))
+          (process-put process :response-q (arei-nrepl-response-queue))
+
+          (arei-client-clear-session-cache)
+          (sesman-add-object 'Arei sesman-session-name buffer 'allow-new)
+
+          (with-current-buffer buffer
+            (arei-connection-mode)
+            (setq arei-client--request-counter 0)
+            (setq arei-client--nrepl-sessions (make-hash-table :test 'equal))
+            (setq arei-client--pending-requests (make-hash-table :test 'equal))
+            ;; Set the current working directory for the connection buffer
+            ;; to the project root.
+            (when (project-current)
+              (setq default-directory (project-root (project-current))))
+
+            (insert
+             (propertize
+              (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)
+              'face
+              '((t (:inherit font-lock-comment-face)))))
+            (arei--initialize-sessions buffer initial-buffer))
+          (when (fboundp arei-connection-buffer-display-function)
+            (funcall arei-connection-buffer-display-function buffer))
+          buffer)
+        (error
+         (progn
+           (kill-buffer buffer-name)
+           (message "%s" (error-message-string err)))))))
 
 (defun arei-client--print-pending-requests ()
   (interactive)
@@ -55,6 +201,14 @@ and responses.")
     (maphash (lambda (key value)
                (message "Key: %s, Value: %s" key value))
              arei-client--pending-requests)))
+
+;; MAYBE: Rename to switch-to-nrepl-session-buffer to make sure C-c
+;; C-z jumps to buffer with needed output.
+(defun arei-switch-to-connection-buffer ()
+  (interactive)
+  (if (arei-connection-buffer)
+      (pop-to-buffer (arei-connection-buffer))
+    (message "No connection associated with the buffer yet.")))
 
 (defun arei-client-remove-from-session-cache ()
   "Remove current file-name association from session cache.
