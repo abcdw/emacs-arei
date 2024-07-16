@@ -1,4 +1,4 @@
-;;; arei-guile-module.el --- Guile Module Operations for Arei  -*- lexical-binding: t; -*-
+;;; arei-module.el --- Module Operations for Arei  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2023, 2024 Andrew Tropin <andrew@trop.in>
 ;; Copyright © 2024 Nikita Domnitskii
@@ -20,7 +20,7 @@
 
 ;;; Commentary:
 
-;; Guile Module Operations for Arei
+;; Module Operations for Arei
 
 ;;; Code:
 
@@ -51,4 +51,4 @@
       (message "This module doesn't have corresponding filename. (Or \
 we couldn't figure it out)"))))
 
-(provide 'arei-guile-module)
+(provide 'arei-module)
