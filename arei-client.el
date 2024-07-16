@@ -284,13 +284,11 @@ exist."
   "Internal API for `arei-client-send-request', it should NOT be
  used directly."
   (unless connection (error "No nREPL connection for current session"))
-  (with-current-buffer connection
-    (let* ((id (number-to-string (cl-incf arei-client--request-counter))))
-      ;; TODO: [Andrew Tropin, 2023-11-20] Ensure that session is created
-      ;; at the moment of calling, otherwise put a request into callback.
+  (let ((id (arei-nrepl-dict-get request "id")))
+    (unless id (error "No id provided for request"))
+    (with-current-buffer connection
       (when session-id
         (arei-nrepl-dict-put request "session" session-id))
-      (arei-nrepl-dict-put request "id" id)
       (puthash id callback arei-client--pending-requests)
       (process-send-string nil (arei-nrepl-bencode request)))))
 
@@ -314,12 +312,22 @@ exist."
       (accept-process-output nil 0.01))
     response))
 
+(defun arei-client--add-id-to-request (request)
+  "Add id to request dict, id is based on the value of
+`arei-client--request-counter'."
+  (with-current-buffer (arei-connection-buffer)
+    (arei-nrepl-dict-put
+     request
+     "id"
+     (number-to-string (cl-incf arei-client--request-counter)))))
+
 (defun arei-client-send-request (request callback session-id)
   "Send REQUEST and assign CALLBACK.
 The CALLBACK function will be called when reply is received.
 
 SESSION-ID should be either session-id or nil.  nil is for
 ephemeral session."
+  (arei-client--add-id-to-request request)
   (arei-client--send-request
    request
    (arei-connection-buffer)
@@ -328,7 +336,11 @@ ephemeral session."
 
 (defun arei-client-send-sync-request (request session-id)
   "Send request to nREPL server synchronously."
-  (arei-client--send-sync-request request (arei-connection-buffer) session-id))
+  (arei-client--add-id-to-request request)
+  (arei-client--send-sync-request
+   request
+   (arei-connection-buffer)
+   session-id))
 
 (provide 'arei-client)
 ;;; arei-client.el ends here
