@@ -86,18 +86,18 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
   (with-current-buffer (arei-connection-buffer)
     (gethash name arei-client--nrepl-sessions)))
 
-(defun arei-send-sync-request (request &optional connection with-session)
+(defun arei-send-sync-request (request &optional connection session-id)
   "Send request to nREPL server synchronously."
-  ;; TODO: handle the case, when connection is not available.
   (let ((time0 (current-time))
-        (conn (or connection (arei-connection-buffer)))
+        (connection (or connection (arei-connection-buffer)))
         response
         global-status)
+    (unless connection (error "No nREPL connection for current session"))
     (arei-send-request
      request
-     conn
+     connection
      (lambda (resp) (setq response resp))
-     with-session)
+     session-id)
     (while (not (member "done" global-status))
       (setq global-status (arei-nrepl-dict-get response "status"))
       (when (time-less-p arei-client-sync-timeout
