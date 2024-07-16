@@ -141,6 +141,12 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
   ;; Don't forget to update it in `sesman-friendly-session-p' as well.
   (arei-client--get-session-id "tooling"))
 
+(defun arei-client-ensure-session-id (name)
+  "Get session-id for session NAME, create session if it doesn't
+exist."
+  (or (arei-client--get-session-id name)
+      (arei--create-nrepl-session name 'arei--nrepl-session-creation-callback)))
+
 
 ;;;
 ;;; arei-connection-mode
