@@ -147,8 +147,6 @@ keybindings info in greeting message."
          (project (project-current))
          (session-prefix (if project (project-name project) (buffer-name)))
          (sesman-session-name (concat session-prefix ":" host-and-port))
-         ;; TODO: [Andrew Tropin, 2023-11-20] Handle the case when the
-         ;; buffer already exists.
          (buffer-name (concat "*arei: " sesman-session-name "*")))
 
     ;; Prevent function being called directly, bypassing sesman
