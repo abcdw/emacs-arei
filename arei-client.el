@@ -273,6 +273,11 @@ exist."
                (message "Key: %s, Value: %s" key value))
              arei-client--pending-requests)))
 
+
+;;;
+;;; Requests
+;;;
+
 (defun arei--send-request (request connection callback session-id)
   "Internal API for `arei-send-request', it should NOT be used directly."
   (unless connection (error "No nREPL connection for current session"))
@@ -285,14 +290,6 @@ exist."
       (arei-nrepl-dict-put request "id" id)
       (puthash id callback arei-client--pending-requests)
       (process-send-string nil (arei-nrepl-bencode request)))))
-
-(defun arei-send-request (request callback session-id)
-  "Send REQUEST and assign CALLBACK.
-The CALLBACK function will be called when reply is received.
-
-SESSION-ID should be either session-id or nil.  nil is for
-ephemeral session."
-  (arei--send-request request (arei-connection-buffer) callback session-id))
 
 (defun arei--send-sync-request (request connection session-id)
   "Internal API for `arei-send-sync-request', it should NOT be used
@@ -313,6 +310,14 @@ directly."
         (error "Sync nREPL request timed out %s" request))
       (accept-process-output nil 0.01))
     response))
+
+(defun arei-send-request (request callback session-id)
+  "Send REQUEST and assign CALLBACK.
+The CALLBACK function will be called when reply is received.
+
+SESSION-ID should be either session-id or nil.  nil is for
+ephemeral session."
+  (arei--send-request request (arei-connection-buffer) callback session-id))
 
 (defun arei-send-sync-request (request session-id)
   "Send request to nREPL server synchronously."
