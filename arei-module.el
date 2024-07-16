@@ -51,4 +51,8 @@
       (message "This module doesn't have corresponding filename. (Or \
 we couldn't figure it out)"))))
 
+(defvar-keymap arei-module-map
+  ;; "M-c" #'arei-module-clear ; or reload?
+  "M-m" #'arei-goto-module)
+
 (provide 'arei-module)

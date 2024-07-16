@@ -449,6 +449,7 @@ variable to nil to disable the mode line entirely.")
   "C-x C-e" #'arei-evaluate-last-sexp
   "C-c C-k" #'arei-evaluate-buffer
   "C-c C-i" #'arei-interrupt-evaluation
+  "C-c M-m" arei-module-map
   "C-c C-m" arei-guile-macroexpansion-map
 
   "C-M-x" #'arei-evaluate-top-level-form
