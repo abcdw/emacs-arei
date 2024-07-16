@@ -41,7 +41,7 @@ and responses.")
 (defvar arei-client-sync-timeout 5
   "Number of seconds to wait for a sync response")
 
-(defvar arei-client--session-cache (make-hash-table :test 'equal)
+(defvar arei-client--sesman-session-cache (make-hash-table :test 'equal)
   "Session cache for `arei-connection-buffer'.")
 
 
@@ -144,8 +144,10 @@ and responses.")
          (port (number-to-string (plist-get params :port)))
          (host-and-port (concat host ":" port))
          (project (project-current))
-         (session-prefix (if project (project-name project) (buffer-name)))
-         (sesman-session-name (concat session-prefix ":" host-and-port))
+         (sesman-session-prefix
+          (if project (project-name project) (buffer-name)))
+         (sesman-session-name
+          (concat sesman-session-prefix ":" host-and-port))
          (buffer-name (concat "*arei: " sesman-session-name "*")))
 
     ;; Prevent function being called directly, bypassing sesman
@@ -164,7 +166,7 @@ and responses.")
           (process-put process :string-q (queue-create))
           (process-put process :response-q (arei-nrepl-response-queue))
 
-          (arei-client-clear-session-cache)
+          (arei-client-clear-sesman-session-cache)
           (sesman-add-object 'Arei sesman-session-name buffer 'allow-new)
 
           (with-current-buffer buffer
@@ -204,25 +206,25 @@ and responses.")
       (pop-to-buffer (arei-connection-buffer))
     (message "No connection associated with the buffer yet.")))
 
-(defun arei-client-remove-from-session-cache ()
+(defun arei-client-remove-from-sesman-session-cache ()
   "Remove current file-name association from session cache.
 This function is intended to be used as a value for `kill-buffer-hook'."
   (let ((filename (buffer-file-name (current-buffer))))
-    (map-delete arei-client--session-cache filename)))
+    (map-delete arei-client--sesman-session-cache filename)))
 
-(defun arei-client-clear-session-cache ()
+(defun arei-client-clear-sesman-session-cache ()
   "Clear session cache.
 This function is intended to be used as a value for `sesman-post-command-hook'."
   ;; NOTE: no equalent in map.el
-  (clrhash arei-client--session-cache))
+  (clrhash arei-client--sesman-session-cache))
 
 (defun arei-connection-buffer ()
   "Return a connection buffer associated with the current session."
   (let ((filename (buffer-file-name (current-buffer))))
-    (if (map-contains-key arei-client--session-cache filename)
-        (map-elt arei-client--session-cache filename)
+    (if (map-contains-key arei-client--sesman-session-cache filename)
+        (map-elt arei-client--sesman-session-cache filename)
       (let ((buff (cadr (sesman-current-session 'Arei))))
-        (map-put! arei-client--session-cache filename buff)))))
+        (map-put! arei-client--sesman-session-cache filename buff)))))
 
 (defun arei-connection ()
   "Return a process associated with the current session connection."

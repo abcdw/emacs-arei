@@ -96,11 +96,11 @@ Development related and other commands:
 
 
 ;;;
-;;; Sessions
+;;; Sesman
 ;;;
 
-;; (defun arei-sessions ()
-;;   "Return a list of all active Arei sessions."
+;; (defun arei-sesman-sessions ()
+;;   "Return a list of all active Arei sesman sessions."
 ;;   (sesman-sessions 'Arei))
 
 (cl-defmethod sesman-project ((_system (eql Arei)))
@@ -322,17 +322,13 @@ variable to nil to disable the mode line entirely.")
         (add-hook 'eldoc-documentation-functions #'arei-eldoc-arglist nil t)
         (add-hook 'completion-at-point-functions #'arei-complete-at-point nil t)
         (add-hook 'xref-backend-functions #'arei--xref-backend nil t)
-        (add-hook 'kill-buffer-hook #'arei-client-remove-from-session-cache nil t)
-        (add-hook 'sesman-post-command-hook #'arei-client-clear-session-cache nil t)
-        ;; (setq next-error-function #'arei-jump-to-compilation-error)
-        )
-    ;; Mode cleanup
-    ;; (mapc #'kill-local-variable '(next-error-function))
+        (add-hook 'kill-buffer-hook #'arei-client-remove-from-sesman-session-cache nil t)
+        (add-hook 'sesman-post-command-hook #'arei-client-clear-sesman-session-cache nil t))
     (remove-hook 'completion-at-point-functions #'arei-complete-at-point t)
     (remove-hook 'xref-backend-functions #'arei--xref-backend t)
     (remove-hook 'eldoc-documentation-functions #'arei-eldoc-arglist t)
-    (remove-hook 'kill-buffer-hook #'arei-client-remove-from-session-cache t)
-    (remove-hook 'sesman-post-command-hook #'arei-client-clear-session-cache t)))
+    (remove-hook 'kill-buffer-hook #'arei-client-remove-from-sesman-session-cache t)
+    (remove-hook 'sesman-post-command-hook #'arei-client-clear-sesman-session-cache t)))
 
 ;;;###autoload
 (defun arei-mode--maybe-activate ()
