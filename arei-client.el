@@ -268,17 +268,15 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
                (message "Key: %s, Value: %s" key value))
              arei-client--pending-requests)))
 
-(defun arei--send-request (request connection callback &optional session-id)
+(defun arei--send-request (request connection callback session-id)
   "Internal API for `arei-send-request', it should NOT be used directly."
   (unless connection (error "No nREPL connection for current session"))
   (with-current-buffer connection
     (let* ((id (number-to-string (cl-incf arei-client--request-counter))))
       ;; TODO: [Andrew Tropin, 2023-11-20] Ensure that session is created
       ;; at the moment of calling, otherwise put a request into callback.
-      (when-let* ((session (if (eq session-id t)
-                               (arei-client--get-session-id "tooling")
-                             session-id)))
-        (arei-nrepl-dict-put request "session" session))
+      (when session-id
+        (arei-nrepl-dict-put request "session" session-id))
       (arei-nrepl-dict-put request "id" id)
       (puthash id callback arei-client--pending-requests)
       (process-send-string nil (arei-nrepl-bencode request)))))
