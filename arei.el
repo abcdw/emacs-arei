@@ -113,11 +113,16 @@ Development related and other commands:
   (call-interactively #'arei--start))
 
 (cl-defmethod sesman-friendly-session-p ((_system (eql Arei)) session)
+  ;; We can't use `arei-connection-buffer' and
+  ;; `arei--tooling-session-id' here, because it will lead to infinite
+  ;; recursion.
   (let* ((conn (cadr session))
          (file (buffer-file-name))
+         (tooling-session (with-current-buffer conn
+                            (gethash "tooling" arei--nrepl-sessions)))
          (load-path (thread-first
                       (arei-nrepl-dict "op" "ares.guile.utils/load-path")
-                      (arei-send-sync-request conn t)
+                      (arei--send-sync-request conn tooling-session)
                       (arei-nrepl-dict-get "load-path"))))
     (seq-find (lambda (path) (string-prefix-p path file)) load-path)))
 

@@ -38,7 +38,9 @@
                   "sym" sym)))
     (when-let* ((module (arei-current-module)))
       (arei-nrepl-dict-put request "ns" module))
-    (arei-nrepl-dict-get (arei-send-sync-request request) "info")))
+    (arei-nrepl-dict-get
+     (arei-send-sync-request request (arei--tooling-session-id))
+     "info")))
 
 (defun arei-xref--make-xref-loc (identifier)
   (when-let* ((info (arei-xref--request-lookup identifier))

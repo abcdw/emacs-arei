@@ -141,6 +141,9 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
   (arei-client--get-session-id "evaluation"))
 
 (defun arei--tooling-session-id ()
+  ;; Note: To avoid recursion, this wrapper can't be used in
+  ;; `sesman-friendly-session-p', so be mindful if rename the session.
+  ;; Don't forget to update it in `sesman-friendly-session-p' as well.
   (arei-client--get-session-id "tooling"))
 
 
@@ -289,10 +292,10 @@ SESSION-ID should be either session-id or nil.  nil is for
 ephemeral session."
   (arei--send-request request (arei-connection-buffer) callback session-id))
 
-(defun arei-send-sync-request (request &optional connection session-id)
-  "Send request to nREPL server synchronously."
+(defun arei--send-sync-request (request connection session-id)
+  "Internal API for `arei-send-sync-request', it should NOT be used
+directly."
   (let ((time0 (current-time))
-        (connection (or connection (arei-connection-buffer)))
         response
         global-status)
     (unless connection (error "No nREPL connection for current session"))
@@ -308,6 +311,10 @@ ephemeral session."
         (error "Sync nREPL request timed out %s" request))
       (accept-process-output nil 0.01))
     response))
+
+(defun arei-send-sync-request (request session-id)
+  "Send request to nREPL server synchronously."
+  (arei--send-sync-request request (arei-connection-buffer) session-id))
 
 (provide 'arei-client)
 ;;; arei-client.el ends here

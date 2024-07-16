@@ -152,7 +152,7 @@ variable."
       (arei-nrepl-dict-put request "ns" module))
     (thread-first
       request
-      (arei-send-sync-request nil t))))
+      (arei-send-sync-request (arei--tooling-session-id)))))
 
 (defun arei--get-expression-value (exp)
   (arei-nrepl-dict-get (arei--sync-eval exp) "value"))
