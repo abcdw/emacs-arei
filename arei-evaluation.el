@@ -149,7 +149,7 @@ variable."
      (arei--get-evaluation-value-callback (current-buffer))
      t)))
 
-(defun arei--get-expression-value (exp &optional connection)
+(defun arei--sync-eval (exp)
   (let ((request (arei-nrepl-dict
                   "op" "eval"
                   "code" exp)))
@@ -157,8 +157,10 @@ variable."
       (arei-nrepl-dict-put request "ns" module))
     (thread-first
       request
-      (arei-send-sync-request connection t)
-      (arei-nrepl-dict-get "value"))))
+      (arei-send-sync-request nil t))))
+
+(defun arei--get-expression-value (exp)
+  (arei-nrepl-dict-get (arei--sync-eval exp) "value"))
 
 (defun arei-interrupt-evaluation (&optional session-id)
   "Interrupt evaluation for a particular SESSION-ID, if no
