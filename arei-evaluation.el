@@ -1,4 +1,4 @@
-;;; arei-guile-evaluation.el --- Guile Evaluation for Arei  -*- lexical-binding: t; -*-
+;;; arei-evaluation.el --- Evaluation for Arei  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2023, 2024 Andrew Tropin <andrew@trop.in>
 ;; Copyright © 2024 Nikita Domnitskii
@@ -20,7 +20,7 @@
 
 ;;; Commentary:
 
-;; Guile Evaluation for Arei
+;; Evaluation for Arei
 
 ;;; Code:
 
@@ -206,5 +206,5 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
   ":" #'arei-evaluate-sexp
   "C-i" #'arei-interrupt-evaluation)
 
-(provide 'arei-guile-evaluation)
-;;; arei-guile-evaluation.el ends here
+(provide 'arei-evaluation)
+;;; arei-evaluation.el ends here

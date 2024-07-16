@@ -35,7 +35,7 @@
 (require 'arei-xref)
 (require 'arei-completion)
 (require 'arei-spinner)
-(require 'arei-guile-evaluation)
+(require 'arei-evaluation)
 (require 'arei-guile-module)
 (require 'arei-guile-macroexpansion)
 (require 'scheme)

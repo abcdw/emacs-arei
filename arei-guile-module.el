@@ -24,7 +24,7 @@
 
 ;;; Code:
 
-(require 'arei-guile-evaluation)
+(require 'arei-evaluation)
 
 (defun arei--get-modules ()
   (read (arei--get-expression-value
