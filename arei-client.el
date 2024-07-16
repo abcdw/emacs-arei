@@ -292,7 +292,8 @@ exist."
       (puthash id callback arei-client--pending-requests)
       (process-send-string nil (arei-nrepl-bencode request)))))
 
-(defun arei-client--send-sync-request (request connection session-id)
+(defun arei-client--send-sync-request
+    (request connection session-id &optional timeout-callback)
   "Internal API for `arei-client-send-sync-request', it should
  NOT be used directly."
   (let ((time0 (current-time))
@@ -308,7 +309,9 @@ exist."
       (setq global-status (arei-nrepl-dict-get response "status"))
       (when (time-less-p arei-client-sync-timeout
                          (time-subtract nil time0))
-        (error "Sync nREPL request timed out %s" request))
+        (if (functionp timeout-callback)
+            (funcall timeout-callback request)
+          (error "Sync nREPL request timed out %s" request)))
       (accept-process-output nil 0.01))
     response))
 
@@ -334,13 +337,15 @@ ephemeral session."
    callback
    session-id))
 
-(defun arei-client-send-sync-request (request session-id)
+(defun arei-client-send-sync-request
+    (request session-id &optional timeout-callback)
   "Send request to nREPL server synchronously."
   (arei-client--add-id-to-request request)
   (arei-client--send-sync-request
    request
    (arei-connection-buffer)
-   session-id))
+   session-id
+   timeout-callback))
 
 (provide 'arei-client)
 ;;; arei-client.el ends here
