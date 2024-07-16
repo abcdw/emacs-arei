@@ -129,29 +129,6 @@ Development related and other commands:
 
 
 ;;;
-;;; arei-connection-mode
-;;;
-
-(defvar-keymap arei-connection-mode-map
-  "C-c C-s" #'sesman-map)
-
-(easy-menu-define arei-connection-mode-menu arei-connection-mode-map
-  "Menu for Arei's CONNECTION mode"
-  `("CONNECTION"))
-
-(define-derived-mode arei-connection-mode fundamental-mode "kinda REPL"
-  "Major mode for Arei connection.
-
-\\{arei-connection-mode-map}
-"
-
-  ;; :keymap arei-mode-map
-  ;; A smooth scrolling instead of jumping half a screen:
-  (setq-local scroll-conservatively 101)
-  (setq-local sesman-system 'Arei))
-
-
-;;;
 ;;; Overlay
 ;;;
 

@@ -67,6 +67,29 @@ and responses.")
 
 
 ;;;
+;;; arei-connection-mode
+;;;
+
+(defvar-keymap arei-connection-mode-map
+  "C-c C-s" #'sesman-map)
+
+;; (easy-menu-define arei-connection-mode-menu arei-connection-mode-map
+;;   "Menu for Arei's connection mode"
+;;   `("Arei"))
+
+(define-derived-mode arei-connection-mode fundamental-mode "kinda REPL"
+  "Major mode for Arei connection.
+
+\\{arei-connection-mode-map}
+"
+
+  ;; :keymap arei-mode-map
+  ;; A smooth scrolling instead of jumping half a screen:
+  (setq-local scroll-conservatively 101)
+  (setq-local sesman-system 'Arei))
+
+
+;;;
 ;;; Connection
 ;;;
 
@@ -99,7 +122,6 @@ and responses.")
    (arei-nrepl-dict "op" "clone")
    connection
    (arei--new-nrepl-session-handler session-name callback)))
-
 
 (defun arei--sentinel (process message)
   "Called when connection is changed; in out case dropped."
@@ -230,8 +252,6 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
   "Return a process associated with the current session connection."
   (get-buffer-process (arei-connection-buffer)))
 
-;; TODO: [Nikita Domnitskii, 2024-04-16] move connection related code to
-;; arei-connection or something
 (defun arei-connected-p ()
   "Return t if Arei is currently connected, nil otherwise."
   (process-live-p (arei-connection)))
