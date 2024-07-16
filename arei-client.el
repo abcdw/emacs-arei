@@ -49,6 +49,36 @@ and responses.")
 ;;; nREPL Sessions
 ;;;
 
+;; TODO: [Andrew Tropin, 2023-11-20] Add association between session
+;; and output buffer for it.  It's needed to support multiple nrepl
+;; sessions that can use separate buffers for stdin/stdout instead of
+;; using primary connection buffer.  Also, adding
+;; `arei-set-default-nrepl-session' may help for eval and switch
+;; operations.
+(defun arei--new-nrepl-session-handler (session-name &optional callback)
+  "Returns callback that is called when new session is created."
+  (lambda (response)
+    (pcase response
+      ((map new-session)
+       (when new-session
+         (insert
+          (propertize
+           (format ";;; nREPL session created: %s\n" session-name)
+           'face
+           '((t (:inherit font-lock-comment-face)))))
+         (message "Connected to nREPL server.")
+         (when callback (funcall callback))
+         (setq-local arei--nrepl-session new-session)
+         (puthash session-name new-session arei-client--nrepl-sessions))))))
+
+(defun arei--create-nrepl-session (connection session-name &optional callback)
+  "Setups an nrepl session and register it in `arei--nrepl-sessions'."
+  (puthash session-name nil arei-client--nrepl-sessions)
+  (arei-send-request
+   (arei-nrepl-dict "op" "clone")
+   connection
+   (arei--new-nrepl-session-handler session-name callback)))
+
 (defun arei-client--get-session-id (name)
   "Get session-id from session NAME."
   (with-current-buffer (arei-connection-buffer)
@@ -92,36 +122,6 @@ and responses.")
 ;;;
 ;;; Connection
 ;;;
-
-;; TODO: [Andrew Tropin, 2023-11-20] Add association between session
-;; and output buffer for it.  It's needed to support multiple nrepl
-;; sessions that can use separate buffers for stdin/stdout instead of
-;; using primary connection buffer.  Also, adding
-;; `arei-set-default-nrepl-session' may help for eval and switch
-;; operations.
-(defun arei--new-nrepl-session-handler (session-name &optional callback)
-  "Returns callback that is called when new session is created."
-  (lambda (response)
-    (pcase response
-      ((map new-session)
-       (when new-session
-         (insert
-          (propertize
-           (format ";;; nREPL session created: %s\n" session-name)
-           'face
-           '((t (:inherit font-lock-comment-face)))))
-         (message "Connected to nREPL server.")
-         (when callback (funcall callback))
-         (setq-local arei--nrepl-session new-session)
-         (puthash session-name new-session arei-client--nrepl-sessions))))))
-
-(defun arei--create-nrepl-session (connection session-name &optional callback)
-  "Setups an nrepl session and register it in `arei--nrepl-sessions'."
-  (puthash session-name nil arei-client--nrepl-sessions)
-  (arei-send-request
-   (arei-nrepl-dict "op" "clone")
-   connection
-   (arei--new-nrepl-session-handler session-name callback)))
 
 (defun arei--sentinel (process message)
   "Called when connection is changed; in out case dropped."
