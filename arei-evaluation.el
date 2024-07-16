@@ -31,9 +31,6 @@
 (eval-when-compile (require 'map))
 (eval-when-compile (require 'pcase))
 
-(defun arei--user-evaluation-session-id ()
-  (arei-client--get-session-id "evaluation"))
-
 (defun arei--send-stdin ()
   (arei-send-request
    (arei-nrepl-dict
@@ -42,7 +39,6 @@
     (condition-case nil
         (concat (read-from-minibuffer "Stdin: " nil) "\n")
       (quit nil)))
-   (arei-connection-buffer)
    #'ignore
    (arei--user-evaluation-session-id)))
 
@@ -118,7 +114,6 @@
       (arei-nrepl-dict-put request "column" column))
     (arei-send-request
      request
-     (arei-connection-buffer)
      (arei--process-user-eval-response-callback (current-buffer) end)
      (arei--user-evaluation-session-id))
     (ignore-errors (arei-spinner-start))))
@@ -147,7 +142,7 @@ variable."
      request
      (or connection (arei-connection-buffer))
      (arei--get-evaluation-value-callback (current-buffer))
-     t)))
+     (arei--tooling-session-id))))
 
 (defun arei--sync-eval (exp)
   (let ((request (arei-nrepl-dict
@@ -168,7 +163,6 @@ SESSION-ID specified interrupt default user's evaluation session."
   (interactive)
   (arei-send-request
    (arei-nrepl-dict "op" "interrupt")
-   (arei-connection-buffer)
    #'ignore
    (or session-id (arei--user-evaluation-session-id))))
 

@@ -77,9 +77,8 @@
       (arei-nrepl-dict-put request "module" module))
     (arei-send-request
      request
-     (arei-connection-buffer)
      (arei--process-guile-macroexpand-response-callback (current-buffer) end)
-     t)
+     (arei--tooling-session-id))
     (ignore-errors (arei-spinner-start))))
 
 (defun arei-macroexpand-last-sexp ()

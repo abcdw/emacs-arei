@@ -132,9 +132,8 @@ Intended for `eldoc-documentation-functions' (which see)."
              (arei-nrepl-dict-put req "ns" module))
            (arei-send-request
             req
-            (arei-connection-buffer)
             (arei-eldoc--callback sym pos callback)
-            t)
+            (arei--tooling-session-id))
            'wait-for-response))))))
 
 (provide 'arei-eldoc)

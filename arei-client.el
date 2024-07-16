@@ -24,6 +24,7 @@
 ;; Abstraction over nREPL interactions
 
 ;;; Code:
+
 (require 'arei-nrepl)
 (require 'sesman)
 (require 'map)
@@ -117,8 +118,8 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
   (puthash session-name nil arei-client--nrepl-sessions)
   (arei-send-request
    (arei-nrepl-dict "op" "clone")
-   connection
-   (arei--new-nrepl-session-handler session-name callback)))
+   (arei--new-nrepl-session-handler session-name callback)
+   nil))
 
 (defun arei-client--get-session-id (name)
   "Get session-id from session NAME."
@@ -135,6 +136,12 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
    connection
    "tooling"
    (lambda ())))
+
+(defun arei--user-evaluation-session-id ()
+  (arei-client--get-session-id "evaluation"))
+
+(defun arei--tooling-session-id ()
+  (arei-client--get-session-id "tooling"))
 
 
 ;;;
@@ -261,12 +268,8 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
                (message "Key: %s, Value: %s" key value))
              arei-client--pending-requests)))
 
-(defun arei-send-request (request connection callback &optional session-id)
-  "Send REQUEST and assign CALLBACK.
-The CALLBACK function will be called when reply is received.
-
-SESSION-ID should be either session-id, t or nil.  If SESSION-ID is t,
-use tooling session, nil use no session."
+(defun arei--send-request (request connection callback &optional session-id)
+  "Internal API for `arei-send-request', it should NOT be used directly."
   (unless connection (error "No nREPL connection for current session"))
   (with-current-buffer connection
     (let* ((id (number-to-string (cl-incf arei-client--request-counter))))
@@ -280,6 +283,14 @@ use tooling session, nil use no session."
       (puthash id callback arei-client--pending-requests)
       (process-send-string nil (arei-nrepl-bencode request)))))
 
+(defun arei-send-request (request callback session-id)
+  "Send REQUEST and assign CALLBACK.
+The CALLBACK function will be called when reply is received.
+
+SESSION-ID should be either session-id or nil.  nil is for
+ephemeral session."
+  (arei--send-request request (arei-connection-buffer) callback session-id))
+
 (defun arei-send-sync-request (request &optional connection session-id)
   "Send request to nREPL server synchronously."
   (let ((time0 (current-time))
@@ -287,7 +298,7 @@ use tooling session, nil use no session."
         response
         global-status)
     (unless connection (error "No nREPL connection for current session"))
-    (arei-send-request
+    (arei--send-request
      request
      connection
      (lambda (resp) (setq response resp))
