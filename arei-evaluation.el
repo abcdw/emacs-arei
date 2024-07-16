@@ -49,7 +49,9 @@
     (lambda (response)
       (pcase response
         ((map status value out err)
-         (goto-char (point-max))
+         ;; Jump to specific position only when there is something to print
+         (when (or out err value)
+           (goto-char (point-max)))
 
          (when (member "need-input" status)
            (arei--send-stdin))
