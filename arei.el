@@ -81,8 +81,8 @@ most obvious candidates here."
 - `sesman-quit' (%s) to close the connection.
 
 Development related and other commands:
-- `arei-evaluate-last-sexp' (%s) to evaluate expression before point.
-- `arei-evaluate-buffer' (%s) to evaluate expression before point.
+- `arei-evaluate-last-sexp' (%s) to evaluate sexp before point.
+- `arei-evaluate-buffer' (%s) to evaluate the whole buffer.
 - `arei-evaluate-sexp' (%s) to interactively evaluate the expression."
      (mapcar 'arei--get-command-keybindings
              `(sesman-start
