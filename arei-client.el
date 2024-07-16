@@ -97,45 +97,40 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
 ;; using primary connection buffer.  Also, adding
 ;; `arei-set-default-nrepl-session' may help for eval and switch
 ;; operations.
-(defun arei--new-nrepl-session-handler (session-name &optional callback)
-  "Returns callback that is called when new session is created."
-  (lambda (response)
-    (pcase response
-      ((map new-session)
-       (when new-session
-         (insert
-          (propertize
-           (format ";;; nREPL session created: %s\n" session-name)
-           'face
-           '((t (:inherit font-lock-comment-face)))))
-         (message "Connected to nREPL server.")
-         (when callback (funcall callback))
-         (setq-local arei--nrepl-session new-session)
-         (puthash session-name new-session arei-client--nrepl-sessions))))))
-
-(defun arei--create-nrepl-session (connection session-name &optional callback)
+(defun arei--create-nrepl-session (session-name &optional callback)
   "Setups an nrepl session and register it in `arei--nrepl-sessions'."
-  (puthash session-name nil arei-client--nrepl-sessions)
-  (arei-send-request
-   (arei-nrepl-dict "op" "clone")
-   (arei--new-nrepl-session-handler session-name callback)
-   nil))
+  (let* ((response (arei-send-sync-request (arei-nrepl-dict "op" "clone") nil))
+         (new-session (arei-nrepl-dict-get response "new-session")))
+    (if (not new-session)
+        (error "nREPL session is not created.")
+      (with-current-buffer (arei-connection-buffer)
+        (puthash session-name new-session arei-client--nrepl-sessions))
+      (funcall callback session-name response)
+      new-session)))
 
-(defun arei-client--get-session-id (name)
-  "Get session-id from session NAME."
+(defun arei--nrepl-session-creation-callback (session-name response)
+  "Display information about created session."
   (with-current-buffer (arei-connection-buffer)
-    (gethash name arei-client--nrepl-sessions)))
+    (goto-char (point-max))
+    (insert
+     (propertize
+      (format ";;; nREPL session created: %s\n" session-name)
+      'face
+      '((t (:inherit font-lock-comment-face)))))))
 
-(defun arei--initialize-nrepl-sessions (connection)
+(defun arei--initialize-nrepl-sessions ()
   "Initialize sessions needed for Arei operation."
   (arei--create-nrepl-session
-   connection
    "evaluation"
-   (lambda ()))
+   'arei--nrepl-session-creation-callback)
   (arei--create-nrepl-session
-   connection
    "tooling"
-   (lambda ())))
+   'arei--nrepl-session-creation-callback))
+
+(defun arei-client--get-session-id (name)
+  "Get session-id for session NAME."
+  (with-current-buffer (arei-connection-buffer)
+    (gethash name arei-client--nrepl-sessions)))
 
 (defun arei--user-evaluation-session-id ()
   (arei-client--get-session-id "evaluation"))
@@ -257,7 +252,8 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
               (format ";;; Connecting to nREPL host on '%s:%s'...\n" host port)
               'face
               '((t (:inherit font-lock-comment-face)))))
-            (arei--initialize-nrepl-sessions buffer))
+            (arei--initialize-nrepl-sessions))
+          (message "Connection to the nREPL server initialized.")
           buffer)
         (error
          (progn
