@@ -157,10 +157,16 @@ variable."
       "interrupt-id" (arei-nrepl-dict-get final-request "id"))
      session-id)))
 
-(defun arei--sync-eval (exp &optional session-id)
+(defun arei--sync-eval (exp &optional module session-id)
   "Try to sncronously evaluate EXP and if timeout reached, interrupt
 evaluation.  You can dynamically bind `arei-client-sync-timeout'
 to change evaluation timeout.
+
+If MODULE is set evaluate in its context, otherwise use
+`arei-current-module'.
+
+If SESSION-ID is set use it, otherwise call
+`arei--tooling-session-id' and use its value.
 
 Example:
 (let ((arei-client-sync-timeout 10))
@@ -169,7 +175,7 @@ Example:
   (let ((request (arei-nrepl-dict
                   "op" "eval"
                   "code" exp)))
-    (when-let* ((module (arei-current-module)))
+    (when-let* ((module (or module (arei-current-module))))
       (arei-nrepl-dict-put request "ns" module))
     (let ((session-id (or session-id (arei--tooling-session-id))))
       (arei-client-send-sync-request
