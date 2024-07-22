@@ -192,7 +192,11 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
   (interactive)
   (arei--request-user-eval nil (arei-syntax-buffer-bounds)))
 
-(defun arei-evaluate-top-level-form ()
+(defun arei-evaluate-outer-form ()
+  "Evaluate top-level form AKA defun.
+
+In the future it may start accepting universal argument to narrow
+down to non-top level forms."
   (interactive)
   (arei--request-user-eval nil (arei-syntax-current-top-level-form)))
 
@@ -200,7 +204,7 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
   "C-e" #'arei-evaluate-last-sexp
   "C-b" #'arei-evaluate-buffer
   "C-r" #'arei-evaluate-region
-  "C-t" #'arei-evaluate-top-level-form
+  "C-t" #'arei-evaluate-outer-form
   ":" #'arei-evaluate-sexp
   "C-i" #'arei-interrupt-evaluation)
 
