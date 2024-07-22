@@ -344,6 +344,7 @@ See command `arei-mode'."
 (with-eval-after-load 'scheme
   (keymap-set scheme-mode-map "C-c C-a" #'arei)
   (keymap-set scheme-mode-map "C-c C-s" 'sesman-map)
+  (require 'sesman) ; sesman-install-menu is not autoloaded
   (sesman-install-menu scheme-mode-map)
   (add-hook 'scheme-mode-hook 'arei-mode--maybe-activate)
   (arei--enable-on-existing-scheme-buffers))
