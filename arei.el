@@ -288,7 +288,7 @@ variable to nil to disable the mode line entirely.")
   "C-c C-m" arei-macroexpansion-map
 
   "C-M-x" #'arei-evaluate-outer-form
-  "C-c C-c" #'arei-evaluate-outer-form)
+  "C-c C-c" #'arei-evaluate-inner-form)
 
 ;;;###autoload
 (define-minor-mode arei-mode

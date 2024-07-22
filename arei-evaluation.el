@@ -202,6 +202,14 @@ down to non-top level forms."
   (interactive)
   (arei--request-user-eval nil (arei-syntax-current-top-level-form)))
 
+(defun arei-evaluate-inner-form ()
+  "Evaluate nearest enclosing form, basically a list under point.
+
+In the future it may start accepting universal argument to widen
+up to next enclosing forms."
+  (interactive)
+  (arei--request-user-eval nil (arei-syntax-list-at-point)))
+
 (defvar-keymap arei-evaluation-keymap
   "C-e" #'arei-evaluate-last-sexp
   "C-b" #'arei-evaluate-buffer
