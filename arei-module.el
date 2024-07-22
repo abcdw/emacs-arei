@@ -60,11 +60,10 @@ we couldn't figure it out)"))))
            ;; We need to wrap it into with-current-module, to be able
            ;; to call reload-module after module is cleaned.
            (format "\
-(with-current-module (resolve-module '(guile))
 (let ((m (resolve-module '%s)))
   (module-clear! m)
-  (reload-module m)))
-" module)))
+  (reload-module m))
+" module) "(guile)"))
          (status (arei-nrepl-dict-get response "status")))
     (when (equal '("done") status)
       (message "Module %s reloaded." module))
