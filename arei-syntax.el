@@ -56,11 +56,15 @@ preciese way."
       (cons start end))))
 
 (defun arei-syntax-current-top-level-form ()
-  "Return bounds of current top-level-form."
+  "Return bounds of the current top-level-form."
   (save-excursion
     (let ((end (progn (end-of-defun) (backward-char) (point)))
           (start (progn (beginning-of-defun) (point))))
       (cons start end))))
+
+(defun arei-syntax-list-at-point ()
+  "Return bounds of the list (compound form) at point, otherwise nil."
+  (bounds-of-thing-at-point 'list))
 
 (defun arei-syntax-buffer-bounds ()
   "Return bounds of the buffer."
