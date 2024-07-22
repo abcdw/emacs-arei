@@ -49,15 +49,16 @@ preciese way."
 (defun arei-syntax-last-sexp-bounds ()
   "Return bounds of last S-expression."
   (save-excursion
-    (let ((end (point))
-          (start (progn (backward-sexp)
-                        (point))))
+    (let* ((start (progn (backward-sexp)
+                         (point)))
+           (end (progn (forward-sexp)
+                       (point))))
       (cons start end))))
 
 (defun arei-syntax-current-top-level-form ()
   "Return bounds of current top-level-form."
   (save-excursion
-    (let ((end (progn (end-of-defun) (point)))
+    (let ((end (progn (end-of-defun) (backward-char) (point)))
           (start (progn (beginning-of-defun) (point))))
       (cons start end))))
 
