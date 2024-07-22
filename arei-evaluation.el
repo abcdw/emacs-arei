@@ -194,7 +194,7 @@ evaluate it.  It's similiar to Emacs' `eval-expression' by spirit."
   (interactive)
   (arei--request-user-eval nil (arei-syntax-buffer-bounds)))
 
-(defun arei-evaluate-outer-form ()
+(defun arei-evaluate-enclosing-outer-form ()
   "Evaluate top-level form AKA defun.
 
 In the future it may start accepting universal argument to narrow
@@ -202,7 +202,7 @@ down to non-top level forms."
   (interactive)
   (arei--request-user-eval nil (arei-syntax-current-top-level-form)))
 
-(defun arei-evaluate-inner-form ()
+(defun arei-evaluate-enclosing-inner-form ()
   "Evaluate nearest enclosing form, basically a list under point.
 
 In the future it may start accepting universal argument to widen
@@ -214,7 +214,7 @@ up to next enclosing forms."
   "C-e" #'arei-evaluate-last-sexp
   "C-b" #'arei-evaluate-buffer
   "C-r" #'arei-evaluate-region
-  "C-t" #'arei-evaluate-outer-form
+  "C-t" #'arei-evaluate-enclosing-outer-form
   ":" #'arei-evaluate-sexp
   "C-i" #'arei-interrupt-evaluation)
 
