@@ -40,7 +40,7 @@ and responses.")
   "A hash-table containing name and session-id association.")
 
 (defvar arei-client-sync-timeout 5
-  "Number of seconds to wait for a sync response")
+  "Number of seconds to wait for a syncronous request's response.")
 
 (defvar arei-client--sesman-session-cache (make-hash-table :test 'equal)
   "Session cache for `arei-connection-buffer'.")

@@ -52,31 +52,11 @@
       (message "This module doesn't have corresponding filename. (Or \
 we couldn't figure it out)"))))
 
-(defun arei--special-sync-eval-callback (session-id)
-  (lambda (final-request)
-    (arei-client-send-sync-request
-     (arei-nrepl-dict
-      "op" "interrupt"
-      "interrupt-id" (arei-nrepl-dict-get final-request "id"))
-     session-id)))
-
-(defun arei--special-sync-eval (exp)
-  (let ((request (arei-nrepl-dict
-                  "op" "eval"
-                  "code" exp)))
-    (when-let* ((module (arei-current-module)))
-      (arei-nrepl-dict-put request "ns" module))
-    (let ((session-id (arei--tooling-session-id)))
-      (arei-client-send-sync-request
-       request
-       session-id
-       (arei--special-sync-eval-callback session-id)))))
-
 (defun arei-reload-module ()
   (interactive)
   (let* ((module (arei-current-module))
          (response
-          (arei--special-sync-eval
+          (arei--sync-eval
            (format "\
 (let ((m (resolve-module '%s)))
   (module-clear! m)
