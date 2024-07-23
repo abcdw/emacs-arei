@@ -121,7 +121,11 @@ Development related and other commands:
          (tooling-session (with-current-buffer conn
                             (gethash "tooling" arei-client--nrepl-sessions)))
          (load-path (thread-first
-                      (arei-nrepl-dict "op" "ares.guile.utils/load-path")
+                      (with-current-buffer conn
+                        (arei-nrepl-dict
+                         "id" (number-to-string
+                               (cl-incf arei-client--request-counter))
+                         "op" "ares.guile.utils/load-path"))
                       (arei-client--send-sync-request conn tooling-session)
                       (arei-nrepl-dict-get "load-path"))))
     (seq-find (lambda (path) (string-prefix-p path file)) load-path)))
