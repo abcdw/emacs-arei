@@ -57,16 +57,21 @@ we couldn't figure it out)"))))
   (let* ((module (arei-current-module))
          (response
           (arei--sync-eval
-           ;; We need to wrap it into with-current-module, to be able
-           ;; to call reload-module after module is cleaned.
            (format "\
-(let ((m (resolve-module '%s)))
-  (module-clear! m)
-  (reload-module m))
-" module) "(guile)"))
-         (status (arei-nrepl-dict-get response "status")))
+(let ((m (resolve-module '%s #:ensure #f)))
+  (if m
+      (begin
+        (module-clear! m)
+        (reload-module m))
+      'module-not-found))
+" module)))
+         (status (arei-nrepl-dict-get response "status"))
+         (value (arei-nrepl-dict-get response "value")))
     (when (equal '("done") status)
-      (message "Module %s reloaded." module))
+      (if (string= "module-not-found" value)
+          (message "Module %s not found. Please make sure it's on \
+load-path or create it manually." module)
+        (message "Module %s reloaded." module)))
     (when (member "interrupted" status)
       (error "Module %s reloading takes too much time, check
  if there are any top-level forms causing infinite recursions,
