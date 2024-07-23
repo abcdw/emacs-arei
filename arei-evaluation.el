@@ -122,32 +122,6 @@
      (arei--user-evaluation-session-id))
     (ignore-errors (arei-spinner-start))))
 
-(defun arei--get-evaluation-value-callback (_connection-buffer)
-  "Set up a handler for eval request responses.  Ignores
-stdout/stderr, saves value to `arei-eval-value' buffer-local
-variable."
-  (lambda (response)
-    (pcase response
-      ((map status value)
-       (when (member "need-input" status)
-         (arei--send-stdin))
-       ;; Doesn't support multiple values yet, ping maintainers if you
-       ;; need this.
-       (setq-local arei-eval-value value)))))
-
-(defun arei--request-eval (code &optional connection)
-  (let ((request (arei-nrepl-dict
-                  "op" "eval"
-                  "code" code))
-        (module (arei-current-module)))
-    (when module
-      (arei-nrepl-dict-put request "ns" module))
-    (arei-client-send-request
-     request
-     (or connection (arei-connection-buffer))
-     (arei--get-evaluation-value-callback (current-buffer))
-     (arei--tooling-session-id))))
-
 
 ;;;
 ;;; APIs
