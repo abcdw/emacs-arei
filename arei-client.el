@@ -99,7 +99,8 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
 ;; operations.
 (defun arei-client--create-nrepl-session (session-name &optional callback)
   "Setups an nrepl session and register it in `arei-client--nrepl-sessions'."
-  (let* ((response (arei-client-send-sync-request (arei-nrepl-dict "op" "clone") nil))
+  (let* ((response (arei-client-send-sync-request
+                    (arei-nrepl-dict "op" "clone") nil))
          (new-session (arei-nrepl-dict-get response "new-session")))
     (if (not new-session)
         (error "nREPL session is not created.")
