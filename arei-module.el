@@ -69,13 +69,17 @@ we couldn't figure it out)"))))
          (value (arei-nrepl-dict-get response "value")))
     (when (equal '("done") status)
       (if (string= "module-not-found" value)
-          (message "Module %s not found. Please make sure it's on \
+          (message "%s: Module not found. Please make sure it's on \
 load-path or create it manually." module)
-        (message "Module %s reloaded." module)))
+        (message "%s: Module reloaded." module)))
     (when (member "interrupted" status)
-      (error "Module %s reloading takes too much time, check
- if there are any top-level forms causing infinite recursions,
- expensive computations or something like that."
+      (error "%s: Module reloading takes too much time, check
+if there are any top-level forms causing infinite recursions,
+expensive computations or something like that.
+
+If you are sure you module is right, increase
+`arei-client-sync-timeout'.  See `arei-client-send-sync-request'
+for more options how to do that temporary."
                module))))
 
 (defvar-keymap arei-module-map
