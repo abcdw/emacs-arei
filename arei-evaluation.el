@@ -148,6 +148,20 @@ variable."
      (arei--get-evaluation-value-callback (current-buffer))
      (arei--tooling-session-id))))
 
+
+;;;
+;;; APIs
+;;;
+
+(defun arei-interrupt-evaluation (&optional session-id)
+  "Interrupt evaluation for a particular SESSION-ID, if no
+SESSION-ID specified interrupt default user's evaluation session."
+  (interactive)
+  (arei-client-send-request
+   (arei-nrepl-dict "op" "interrupt")
+   #'ignore
+   (or session-id (arei--user-evaluation-session-id))))
+
 (defun arei--sync-eval-timeout-callback (session-id)
   "Interrupt evaluation, when request timeouted."
   (lambda (final-request)
@@ -185,15 +199,6 @@ Example:
 
 (defun arei--get-expression-value (exp)
   (arei-nrepl-dict-get (arei--sync-eval exp) "value"))
-
-(defun arei-interrupt-evaluation (&optional session-id)
-  "Interrupt evaluation for a particular SESSION-ID, if no
-SESSION-ID specified interrupt default user's evaluation session."
-  (interactive)
-  (arei-client-send-request
-   (arei-nrepl-dict "op" "interrupt")
-   #'ignore
-   (or session-id (arei--user-evaluation-session-id))))
 
 
 ;;;
