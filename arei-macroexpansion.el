@@ -57,11 +57,7 @@
                        :format fmt
                        :where (or expression-end (point))
                        :duration eros-eval-result-duration)
-               (message fmt expansion))))
-         ;; NOTE: stop spinner if it's the last request (we can have
-         ;; multiple evals queued)
-         (when (= 1 (hash-table-count arei-client--pending-requests))
-           (arei-spinner-stop)))
+               (message fmt expansion)))))
 
        (when (get-buffer-window)
          (set-window-point (get-buffer-window) (buffer-size)))))))
@@ -78,8 +74,7 @@
     (arei-client-send-request
      request
      (arei--process-guile-macroexpand-response-callback (current-buffer) end)
-     (arei--tooling-session-id))
-    (ignore-errors (arei-spinner-start))))
+     (arei--tooling-session-id))))
 
 (defun arei-macroexpand-last-sexp ()
   (interactive)

@@ -90,11 +90,7 @@
                          :format fmt
                          :where (or expression-end (point))
                          :duration eros-eval-result-duration)
-                 (message fmt value))))
-           ;; NOTE: stop spinner if it's the last request (we can have
-           ;; multiple evals queued)
-           (when (= 1 (hash-table-count arei-client--pending-requests))
-             (arei-spinner-stop)))
+                 (message fmt value)))))
 
          (when (get-buffer-window)
            (set-window-point (get-buffer-window) (buffer-size))))))))
@@ -119,8 +115,7 @@
     (arei-client-send-request
      request
      (arei--process-user-eval-response-callback (current-buffer) end)
-     (arei--user-evaluation-session-id))
-    (ignore-errors (arei-spinner-start))))
+     (arei--user-evaluation-session-id))))
 
 
 ;;;

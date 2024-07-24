@@ -133,7 +133,6 @@ Development related and other commands:
 (cl-defmethod sesman-quit-session ((_system (eql Arei)) session)
   "Quit an Arei SESSION."
   (let ((kill-buffer-query-functions nil))
-    (arei-spinner-stop)
     (kill-buffer (cadr session))))
 
 
@@ -262,10 +261,17 @@ this function directly."
 (defun arei--modeline-connection-info ()
   (list
    "["
-   (cond
-    ((arei-spinner-modeline) (arei-spinner-modeline))
-    ((arei-connected-p) "connected")
-    (t "disconnected"))
+   (if (arei-connected-p)
+       (with-current-buffer (arei-connection-buffer)
+         (if (not (hash-table-empty-p arei-client--pending-requests))
+             (progn
+               (unless (arei-spinner-modeline) (arei-spinner-start))
+               (format "%s %s"
+                       (car (arei-spinner-modeline))
+                       (hash-table-count arei-client--pending-requests)))
+           (arei-spinner-stop)
+           "connected"))
+     "disconnected")
    "]"))
 
 (defvar arei-mode-line
