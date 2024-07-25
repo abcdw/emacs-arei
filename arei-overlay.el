@@ -5,14 +5,15 @@
 
 ;;; Code:
 
+(require 'pulse)
+
 (defun arei-overlay-blink-region (bounds)
   "Temporarily highlight the region from START to END."
   (let* ((start (car bounds))
          (end (cdr bounds))
-         (overlay (make-overlay start end)))
-    (overlay-put overlay 'face '(:inherit highlight :extend t))
-    (overlay-put overlay 'priority 10000)
-    (run-at-time "0.5 sec" nil 'delete-overlay overlay)))
+         ;; TODO: [Nikita Domnitskii, 2024-07-25] should be a custom
+         (pulse-delay 0.06))
+    (pulse-momentary-highlight-region start end)))
 
 (provide 'arei-overlay)
 ;;; arei-overlay.el ends here
