@@ -52,6 +52,22 @@
       (message "This module doesn't have corresponding filename. (Or \
 we couldn't figure it out)"))))
 
+(defun arei--process-module-response-callback (module)
+  (lambda (response)
+    (let ((status (arei-nrepl-dict-get response "status"))
+          (value (arei-nrepl-dict-get response "value")))
+      (when (equal '("done") status)
+        (if (string= "module-not-found" value)
+            (message "%s: Module not found. Please make sure it's on \
+load-path or create it manually." module)
+          (message "%s: Module reloaded." module)))
+      (when (member "interrupted" status)
+        (message "%s: Module reloading was interrupted, probably
+because it takes too much time, check if there are any top-level
+forms causing infinite recursions,expensive computations or
+something like that."
+               module)))))
+
 (defun arei-reload-module ()
   (interactive)
   (let* ((module (arei-current-module))
@@ -64,23 +80,8 @@ we couldn't figure it out)"))))
         (module-clear! m)
         (reload-module m))
       'module-not-found))
-" module)))
-         (status (arei-nrepl-dict-get response "status"))
-         (value (arei-nrepl-dict-get response "value")))
-    (when (equal '("done") status)
-      (if (string= "module-not-found" value)
-          (message "%s: Module not found. Please make sure it's on \
-load-path or create it manually." module)
-        (message "%s: Module reloaded." module)))
-    (when (member "interrupted" status)
-      (error "%s: Module reloading takes too much time, check
-if there are any top-level forms causing infinite recursions,
-expensive computations or something like that.
-
-If you are sure you module is right, increase
-`arei-client-sync-timeout'.  See `arei-client-send-sync-request'
-for more options how to do that temporary."
-               module))))
+" module))))
+    ((arei--process-module-response-callback module) response)))
 
 (defvar-keymap arei-module-map
   "M-r" #'arei-reload-module
