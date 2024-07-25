@@ -85,7 +85,8 @@
                     (forward-sexp-function
                      (lambda (&rest args)
                        ;; see https://github.com/xiongtx/eros/issues/10
-                       (ignore-errors (apply #'forward-sexp args)))))
+                       (ignore-errors (apply #'forward-sexp args))))
+                    (truncate-lines nil))
                (unless (eros--make-result-overlay (or value "") ; response
                          :format fmt
                          :where (or expression-end (point))
