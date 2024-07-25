@@ -170,6 +170,26 @@ If SESSION-ID is set use it, otherwise call
 (defun arei--get-expression-value (exp)
   (arei-nrepl-dict-get (arei--sync-eval exp) "value"))
 
+(defun arei--eval (exp &optional callback module session-id)
+  "Asncronously evaluate EXP.
+
+If MODULE is set evaluate in its context, otherwise use
+`arei-current-module'.
+
+If SESSION-ID is set use it, otherwise call
+`arei--tooling-session-id' and use its value.
+"
+  (let ((request (arei-nrepl-dict
+                  "op" "eval"
+                  "code" exp)))
+    (when-let* ((module (or module (arei-current-module))))
+      (arei-nrepl-dict-put request "ns" module))
+    (let ((session-id (or session-id (arei--tooling-session-id))))
+      (arei-client-send-request
+       request
+       (or callback (lambda (response) (message "response: %s" response)))
+       session-id))))
+
 
 ;;;
 ;;; Wrappers for user-eval
