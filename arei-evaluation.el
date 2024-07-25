@@ -147,16 +147,15 @@ SESSION-ID specified interrupt default user's evaluation session."
 evaluation.  You can dynamically bind `arei-client-sync-timeout'
 to change evaluation timeout.
 
+Example:
+(let ((arei-client-sync-timeout 10))
+  (arei--get-expression-value \"(begin (sleep 7) \\='hi)\"))
+
 If MODULE is set evaluate in its context, otherwise use
 `arei-current-module'.
 
 If SESSION-ID is set use it, otherwise call
-`arei--tooling-session-id' and use its value.
-
-Example:
-(let ((arei-client-sync-timeout 10))
-  (arei--get-expression-value \"(begin (sleep 7) \\='hi)\"))
-"
+`arei--tooling-session-id' and use its value."
   (let ((request (arei-nrepl-dict
                   "op" "eval"
                   "code" exp)))
