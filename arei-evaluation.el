@@ -133,6 +133,11 @@ SESSION-ID specified interrupt default user's evaluation session."
    #'ignore
    (or session-id (arei--user-evaluation-session-id))))
 
+(defun arei-interrupt-tooling-evaluation ()
+  "Interrupt evaluation in tooling session."
+  (interactive)
+  (arei-interrupt-evaluation (arei--tooling-session-id)))
+
 (defun arei--sync-eval-timeout-callback (session-id)
   "Interrupt evaluation, when request timeouted."
   (lambda (final-request)
