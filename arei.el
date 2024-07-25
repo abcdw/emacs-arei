@@ -258,20 +258,32 @@ this function directly."
 ;;; arei-mode
 ;;;
 
+(defun arei--modeline-request-count ()
+  (and arei-client--pending-requests
+       (list (number-to-string
+              (hash-table-count arei-client--pending-requests)))))
+
 (defun arei--modeline-connection-info ()
   (list
    "["
-   (if (arei-connected-p)
-       (with-current-buffer (arei-connection-buffer)
-         (if (not (hash-table-empty-p arei-client--pending-requests))
-             (progn
-               (unless (arei-spinner-modeline) (arei-spinner-start))
-               (format "%s %s"
-                       (car (arei-spinner-modeline))
-                       (hash-table-count arei-client--pending-requests)))
-           (arei-spinner-stop)
-           "connected"))
-     "disconnected")
+   (save-current-buffer
+     (when-let* ((buff (arei-connection-buffer))) (set-buffer buff))
+     (cond
+      ((not (arei-connected-p))
+       "disconnected")
+
+      ((hash-table-empty-p arei-client--pending-requests)
+       (arei-spinner-stop)
+       "connected")
+
+      ((null (arei-spinner-modeline))
+       (arei-spinner-start))
+
+      (t
+       (list
+        (arei-spinner-modeline)
+        " "
+        (arei--modeline-request-count)))))
    "]"))
 
 (defvar arei-mode-line
