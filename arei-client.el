@@ -210,8 +210,8 @@ exist."
   "Find associated callback for a message by id."
   (pcase response
     ((map id status)
-     (when-let* ((callback (gethash id arei-client--pending-requests)))
-       (when callback
+     (when-let* ((pending-request (gethash id arei-client--pending-requests)))
+       (when-let (callback (cdr pending-request))
          (funcall callback response)
          (when (member "done" status)
            (remhash id arei-client--pending-requests)))))))
@@ -291,7 +291,7 @@ exist."
     (with-current-buffer connection
       (when session-id
         (arei-nrepl-dict-put request "session" session-id))
-      (puthash id callback arei-client--pending-requests)
+      (puthash id (cons request callback) arei-client--pending-requests)
       (process-send-string nil (arei-nrepl-bencode request)))))
 
 (defun arei-client--send-sync-request
