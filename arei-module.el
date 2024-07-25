@@ -72,7 +72,7 @@ something like that."
   (interactive)
   (let* ((module (arei-current-module))
          (response
-          (arei--sync-eval
+          (arei--eval
            (format "\
 (let ((m (resolve-module '%s #:ensure #f)))
   (if m
@@ -80,8 +80,8 @@ something like that."
         (module-clear! m)
         (reload-module m))
       'module-not-found))
-" module))))
-    ((arei--process-module-response-callback module) response)))
+" module)
+           (arei--process-module-response-callback module))))))
 
 (defvar-keymap arei-module-map
   "M-r" #'arei-reload-module
