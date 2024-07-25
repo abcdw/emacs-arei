@@ -28,6 +28,7 @@
 (require 'arei-syntax)
 (require 'arei-nrepl)
 (require 'arei-overlay)
+(require 'eros)
 
 (eval-when-compile (require 'map))
 (eval-when-compile (require 'pcase))
@@ -142,7 +143,7 @@ SESSION-ID specified interrupt default user's evaluation session."
      session-id)))
 
 (defun arei--sync-eval (exp &optional module session-id)
-  "Try to sncronously evaluate EXP and if timeout reached, interrupt
+  "Try to syncronously evaluate EXP and if timeout reached, interrupt
 evaluation.  You can dynamically bind `arei-client-sync-timeout'
 to change evaluation timeout.
 
@@ -154,7 +155,7 @@ If SESSION-ID is set use it, otherwise call
 
 Example:
 (let ((arei-client-sync-timeout 10))
-  (arei--get-expression-value \"(begin (sleep 7) 'hi)\"))
+  (arei--get-expression-value \"(begin (sleep 7) \\='hi)\"))
 "
   (let ((request (arei-nrepl-dict
                   "op" "eval"

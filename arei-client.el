@@ -28,6 +28,7 @@
 (require 'arei-nrepl)
 (require 'sesman)
 (require 'map)
+(require 'project)
 
 (defvar-local arei-client--request-counter 0
   "Serial number for message, used for association between request
@@ -109,7 +110,7 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
       (funcall callback session-name response)
       new-session)))
 
-(defun arei-client--nrepl-session-creation-callback (session-name response)
+(defun arei-client--nrepl-session-creation-callback (session-name _response)
   "Display information about created session."
   (with-current-buffer (arei-connection-buffer)
     (goto-char (point-max))
