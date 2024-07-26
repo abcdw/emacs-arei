@@ -98,7 +98,8 @@
            (set-window-point (get-buffer-window) (buffer-size))))))))
 
 (defun arei--request-user-eval (code &optional bounds)
-  (arei-overlay-blink-region bounds)
+  (when (arei-connected-p)
+    (arei-overlay-blink-region bounds))
   (pcase-let* ((`(,start . ,end) bounds)
                (code (or code
                          (buffer-substring-no-properties start end)))
