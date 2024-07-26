@@ -244,14 +244,15 @@ from PARAMS plist.  Initialize sesman session.  Read values from
 minibuffer if called with prefix argument.  Users should not call
 this function directly."
   (interactive "P")
-  (let ((connection-buffer
-         (arei-client--connect
-          (thread-first
-            (arei--create-params-plist arg)
-            (arei--select-endpoint)))))
+  (when-let ((connection-buffer
+              (arei-client--connect
+               (thread-first
+                 (arei--create-params-plist arg)
+                 (arei--select-endpoint)))))
     (arei--insert-greeting-message connection-buffer)
     (when (fboundp arei-connection-buffer-display-function)
-      (funcall arei-connection-buffer-display-function connection-buffer))))
+      (funcall arei-connection-buffer-display-function connection-buffer))
+    connection-buffer))
 
 
 ;;;
