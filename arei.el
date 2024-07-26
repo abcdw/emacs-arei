@@ -135,6 +135,11 @@ Development related and other commands:
   (let ((kill-buffer-query-functions nil))
     (kill-buffer (cadr session))))
 
+(cl-defmethod sesman-restart-session ((system (eql Arei)) session)
+  "Just quit and new start session."
+  (sesman-quit-session system session)
+  (sesman-start-session system))
+
 
 ;;;
 ;;; Overlay
