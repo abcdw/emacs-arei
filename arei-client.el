@@ -75,6 +75,15 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
   "Return t if Arei is currently connected, nil otherwise."
   (process-live-p (get-buffer-process (arei-connection-buffer))))
 
+(defmacro arei-with-connection-buffer-if-exists (&rest body)
+  "Execute BODY in `arei-connection-buffer' context if it exists,
+otherwise do nothing."
+  (let ((con-buf-sym (make-symbol "connection-buffer")))
+    `(let ((,con-buf-sym (arei-connection-buffer)))
+       (when ,con-buf-sym
+         (with-current-buffer ,con-buf-sym
+           ,@body)))))
+
 ;; MAYBE: Rename to switch-to-nrepl-session-buffer to make sure C-c
 ;; C-z jumps to buffer with needed output.
 (defun arei-switch-to-connection-buffer ()
