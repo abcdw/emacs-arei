@@ -71,13 +71,9 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
       (let ((buff (cadr (sesman-current-session 'Arei))))
         (map-put! arei-client--sesman-session-cache filename buff)))))
 
-(defun arei-connection ()
-  "Return a process associated with the current session connection."
-  (get-buffer-process (arei-connection-buffer)))
-
 (defun arei-connected-p ()
   "Return t if Arei is currently connected, nil otherwise."
-  (process-live-p (arei-connection)))
+  (process-live-p (get-buffer-process (arei-connection-buffer))))
 
 ;; MAYBE: Rename to switch-to-nrepl-session-buffer to make sure C-c
 ;; C-z jumps to buffer with needed output.
