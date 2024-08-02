@@ -79,6 +79,16 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
   "Checks if CONNECTION is available, otherwise throws an error."
   (unless connection (error "No nREPL connection for current session")))
 
+(defmacro arei-with-connection-buffer (&rest body)
+  "Execute BODY in `arei-connection-buffer' context if it exists,
+otherwise throw an error."
+  (let ((con-buf-sym (make-symbol "connection-buffer")))
+    `(let ((,con-buf-sym (arei-connection-buffer)))
+       (if ,con-buf-sym
+         (with-current-buffer ,con-buf-sym
+           ,@body)
+         (arei-ensure-connection nil)))))
+
 (defmacro arei-with-connection-buffer-if-exists (&rest body)
   "Execute BODY in `arei-connection-buffer' context if it exists,
 otherwise do nothing."
