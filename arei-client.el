@@ -124,14 +124,14 @@ otherwise do nothing."
          (new-session (arei-nrepl-dict-get response "new-session")))
     (if (not new-session)
         (error "nREPL session is not created.")
-      (with-current-buffer (arei-connection-buffer)
+      (arei-with-connection-buffer
         (puthash session-name new-session arei-client--nrepl-sessions))
       (funcall callback session-name response)
       new-session)))
 
 (defun arei-client--nrepl-session-creation-callback (session-name _response)
   "Display information about created session."
-  (with-current-buffer (arei-connection-buffer)
+  (arei-with-connection-buffer
     (goto-char (point-max))
     (insert
      (propertize
@@ -150,7 +150,7 @@ otherwise do nothing."
 
 (defun arei-client--get-session-id (name)
   "Get session-id for session NAME."
-  (with-current-buffer (arei-connection-buffer)
+  (arei-with-connection-buffer
     (gethash name arei-client--nrepl-sessions)))
 
 (defun arei--user-evaluation-session-id ()
@@ -291,7 +291,7 @@ exist."
 
 (defun arei-client--print-pending-requests ()
   (interactive)
-  (with-current-buffer (arei-connection-buffer)
+  (arei-with-connection-buffer
     (maphash (lambda (key value)
                (message "Key: %s, Value: %s" key value))
              arei-client--pending-requests)))
@@ -339,7 +339,7 @@ exist."
 (defun arei-client--add-id-to-request (request)
   "Add id to request dict, id is based on the value of
 `arei-client--request-counter'."
-  (with-current-buffer (arei-connection-buffer)
+  (arei-with-connection-buffer
     (arei-nrepl-dict-put
      request
      "id"
