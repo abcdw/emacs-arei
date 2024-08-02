@@ -75,6 +75,10 @@ This function is intended to be used as a value for `sesman-post-command-hook'."
   "Return t if Arei is currently connected, nil otherwise."
   (process-live-p (get-buffer-process (arei-connection-buffer))))
 
+(defun arei-ensure-connection (connection)
+  "Checks if CONNECTION is available, otherwise throws an error."
+  (unless connection (error "No nREPL connection for current session")))
+
 (defmacro arei-with-connection-buffer-if-exists (&rest body)
   "Execute BODY in `arei-connection-buffer' context if it exists,
 otherwise do nothing."
@@ -290,7 +294,7 @@ exist."
 (defun arei-client--send-request (request connection callback session-id)
   "Internal API for `arei-client-send-request', it should NOT be
  used directly."
-  (unless connection (error "No nREPL connection for current session"))
+  (arei-ensure-connection connection)
   (let ((id (arei-nrepl-dict-get request "id")))
     (unless id (error "No id provided for request"))
     (with-current-buffer connection
@@ -306,7 +310,7 @@ exist."
   (let ((time0 (current-time))
         response
         global-status)
-    (unless connection (error "No nREPL connection for current session"))
+    (arei-ensure-connection connection)
     (arei-client--send-request
      request
      connection
