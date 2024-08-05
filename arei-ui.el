@@ -6,6 +6,7 @@
 ;;; Code:
 
 (require 'pulse)
+(require 'eros)
 
 (defun arei-ui--pulse-momentary-highlight-overlay (o &optional face)
   "Pulse the overlay O, unhighlighting before next command.
@@ -57,6 +58,33 @@ to 10000."
          ;; TODO: [Nikita Domnitskii, 2024-07-25] should be a custom
          (pulse-delay 0.06))
     (pulse-momentary-highlight-region start end)))
+
+(defun eros--remove-result-overlay-real ()
+  "Remove result overlay from current buffer.
+
+This function also removes itself from `pre-command-hook'."
+  (remove-hook 'post-command-hook #'eros--remove-result-overlay-real 'local)
+  (remove-overlays nil nil 'category 'result))
+
+(defun eros--remove-result-overlay ()
+  "Setup a callback to remove result overlay from current buffer."
+  (remove-hook 'pre-command-hook #'eros--remove-result-overlay 'local)
+  (add-hook 'post-command-hook #'eros--remove-result-overlay-real nil 'local))
+
+;; TODO: [Andrew Tropin, 2024-08-05] Migrate to advice override
+
+(defun arei-ui-show-result (fmt result &optional expression-end)
+  "Show result with overlay if possible or message, when it's not."
+  (let ((forward-sexp-function
+         (lambda (&rest args)
+           ;; see https://github.com/xiongtx/eros/issues/10
+           (ignore-errors (apply #'forward-sexp args))))
+        (truncate-lines nil))
+    (unless (eros--make-result-overlay (or result "") ; response
+              :format fmt
+              :where (or expression-end (point))
+              :duration eros-eval-result-duration)
+      (message fmt result))))
 
 (provide 'arei-ui)
 ;;; arei-ui.el ends here

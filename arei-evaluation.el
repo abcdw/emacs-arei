@@ -28,7 +28,6 @@
 (require 'arei-syntax)
 (require 'arei-nrepl)
 (require 'arei-ui)
-(require 'eros)
 
 (eval-when-compile (require 'map))
 (eval-when-compile (require 'pcase))
@@ -82,17 +81,8 @@
                                          "\n")
                                       " => "))
                                (and value (concat " => " value))))
-                    (fmt (if value "%s" " ;; interrupted"))
-                    (forward-sexp-function
-                     (lambda (&rest args)
-                       ;; see https://github.com/xiongtx/eros/issues/10
-                       (ignore-errors (apply #'forward-sexp args))))
-                    (truncate-lines nil))
-               (unless (eros--make-result-overlay (or value "") ; response
-                         :format fmt
-                         :where (or expression-end (point))
-                         :duration eros-eval-result-duration)
-                 (message fmt value)))))
+                    (fmt (if value "%s" " ;; interrupted")))
+               (arei-ui-show-result fmt value expression-end))))
 
          (when (get-buffer-window)
            (set-window-point (get-buffer-window) (buffer-size))))))))

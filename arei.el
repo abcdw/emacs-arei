@@ -40,7 +40,6 @@
 (require 'arei-macroexpansion)
 (require 'scheme)
 (require 'sesman)
-(require 'eros)
 (eval-when-compile (require 'subr-x))
 (eval-when-compile (require 'pcase))
 (eval-when-compile (require 'map))
@@ -144,18 +143,6 @@ Development related and other commands:
 ;;;
 ;;; Overlay
 ;;;
-
-(defun eros--remove-result-overlay-real ()
-  "Remove result overlay from current buffer.
-
-This function also removes itself from `pre-command-hook'."
-  (remove-hook 'post-command-hook #'eros--remove-result-overlay-real 'local)
-  (remove-overlays nil nil 'category 'result))
-
-(defun eros--remove-result-overlay ()
-  "Setup a callback to remove result overlay from current buffer."
-  (remove-hook 'pre-command-hook #'eros--remove-result-overlay 'local)
-  (add-hook 'post-command-hook #'eros--remove-result-overlay-real nil 'local))
 
 (defun arei--comment-string (str)
   "Add comment-prefix to "

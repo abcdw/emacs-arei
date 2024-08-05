@@ -26,6 +26,7 @@
 (require 'arei-client)
 (require 'arei-syntax)
 (require 'arei-nrepl)
+(require 'arei-ui)
 
 (eval-when-compile (require 'map))
 (eval-when-compile (require 'pcase))
@@ -46,18 +47,11 @@
          (insert (propertize expansion 'face
                              '((t (:inherit font-lock-string-face)))))
          (insert "\n"))
+
        (when (member "done" status)
          (with-current-buffer connection-buffer
-           (let* ((fmt (if expansion " -> %s" " ;; interrupted"))
-                  (forward-sexp-function
-                   (lambda (&rest args)
-                     ;; see https://github.com/xiongtx/eros/issues/10
-                     (ignore-errors (apply #'forward-sexp args)))))
-             (unless (eros--make-result-overlay (or expansion "") ; response
-                       :format fmt
-                       :where (or expression-end (point))
-                       :duration eros-eval-result-duration)
-               (message fmt expansion)))))
+           (let ((fmt (if expansion " -> %s" " ;; interrupted")))
+             (arei-ui-show-result fmt expansion expression-end))))
 
        (when (get-buffer-window)
          (set-window-point (get-buffer-window) (buffer-size)))))))
