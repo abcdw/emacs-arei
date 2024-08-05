@@ -59,19 +59,25 @@ to 10000."
          (pulse-delay 0.06))
     (pulse-momentary-highlight-region start end)))
 
-(defun eros--remove-result-overlay-real ()
+(defun arei-ui--remove-result-overlay ()
   "Remove result overlay from current buffer.
 
-This function also removes itself from `pre-command-hook'."
-  (remove-hook 'post-command-hook #'eros--remove-result-overlay-real 'local)
+This function also removes itself from `post-command-hook'."
+  (remove-hook 'post-command-hook #'arei-ui--remove-result-overlay 'local)
   (remove-overlays nil nil 'category 'result))
 
-(defun eros--remove-result-overlay ()
-  "Setup a callback to remove result overlay from current buffer."
-  (remove-hook 'pre-command-hook #'eros--remove-result-overlay 'local)
-  (add-hook 'post-command-hook #'eros--remove-result-overlay-real nil 'local))
+(defun arei-ui--eros--remove-result-overlay ()
+  "Setup a callback to remove result overlay from current buffer.
 
-;; TODO: [Andrew Tropin, 2024-08-05] Migrate to advice override
+In removes `eros--remove-result-overlay' from `pre-command-hook' and
+sets `arei-ui--remove-result-overlay' in `post-command-hook'.
+
+A bit of a hack, but works fine."
+  (remove-hook 'pre-command-hook #'eros--remove-result-overlay 'local)
+  (add-hook 'post-command-hook #'arei-ui--remove-result-overlay nil 'local))
+
+(advice-add 'eros--remove-result-overlay :override
+            'arei-ui--eros--remove-result-overlay)
 
 (defun arei-ui-show-result (fmt result &optional expression-end)
   "Show result with overlay if possible or message, when it's not."
