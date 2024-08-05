@@ -1,4 +1,4 @@
-;;; arei-overlay.el --- Tools for working with overalys -*- lexical-binding: t; coding:utf-8 -*-
+;;; arei-ui.el --- Tools for working with ui components -*- lexical-binding: t; coding:utf-8 -*-
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;; Copyright © 2024 Andrew Tropin <andrew@trop.in>
@@ -7,7 +7,7 @@
 
 (require 'pulse)
 
-(defun arei--pulse-momentary-highlight-overlay (o &optional face)
+(defun arei-ui--pulse-momentary-highlight-overlay (o &optional face)
   "Pulse the overlay O, unhighlighting before next command.
 Optional argument FACE specifies the face to do the highlighting.
 
@@ -48,9 +48,9 @@ to 10000."
                                         (* pulse-delay pulse-iterations))))))))
 
 (advice-add 'pulse-momentary-highlight-overlay :override
-            'arei--pulse-momentary-highlight-overlay)
+            'arei-ui--pulse-momentary-highlight-overlay)
 
-(defun arei-overlay-blink-region (bounds)
+(defun arei-ui-blink-region (bounds)
   "Temporarily highlight the region from START to END."
   (let* ((start (car bounds))
          (end (cdr bounds))
@@ -58,5 +58,5 @@ to 10000."
          (pulse-delay 0.06))
     (pulse-momentary-highlight-region start end)))
 
-(provide 'arei-overlay)
-;;; arei-overlay.el ends here
+(provide 'arei-ui)
+;;; arei-ui.el ends here

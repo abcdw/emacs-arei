@@ -27,7 +27,7 @@
 (require 'arei-client)
 (require 'arei-syntax)
 (require 'arei-nrepl)
-(require 'arei-overlay)
+(require 'arei-ui)
 (require 'eros)
 
 (eval-when-compile (require 'map))
@@ -99,7 +99,7 @@
 
 (defun arei--request-user-eval (code &optional bounds)
   (when (arei-connected-p)
-    (arei-overlay-blink-region bounds))
+    (arei-ui-blink-region bounds))
   (pcase-let* ((`(,start . ,end) bounds)
                (code (or code
                          (buffer-substring-no-properties start end)))
