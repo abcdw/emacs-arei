@@ -8,6 +8,13 @@
 (require 'pulse)
 (require 'eros)
 
+(defvar-local arei-ui-show-result-p t
+  "Show overlay with the result of evaluation/macroexpansion/etc.")
+
+(defvar-local arei-ui-blink-region-p t
+  "Highlight a target of the next action (evaluation or
+macroexpansion for example).")
+
 (defun arei-ui--pulse-momentary-highlight-overlay (o &optional face)
   "Pulse the overlay O, unhighlighting before next command.
 Optional argument FACE specifies the face to do the highlighting.
@@ -53,11 +60,13 @@ to 10000."
 
 (defun arei-ui-blink-region (bounds)
   "Temporarily highlight the region from START to END."
-  (let* ((start (car bounds))
-         (end (cdr bounds))
-         ;; TODO: [Nikita Domnitskii, 2024-07-25] should be a custom
-         (pulse-delay 0.06))
-    (pulse-momentary-highlight-region start end)))
+  (when arei-ui-blink-region-p
+    (let* ((start (car bounds))
+           (end (cdr bounds))
+           ;; TODO: [Nikita Domnitskii, 2024-07-25] should be a custom
+           (pulse-delay 0.06))
+      (pulse-momentary-highlight-region start end))))
+
 
 (defun arei-ui--remove-result-overlay ()
   "Remove result overlay from current buffer.
@@ -81,16 +90,17 @@ A bit of a hack, but works fine."
 
 (defun arei-ui-show-result (fmt result &optional expression-end)
   "Show result with overlay if possible or message, when it's not."
-  (let ((forward-sexp-function
-         (lambda (&rest args)
-           ;; see https://github.com/xiongtx/eros/issues/10
-           (ignore-errors (apply #'forward-sexp args))))
-        (truncate-lines nil))
-    (unless (eros--make-result-overlay (or result "") ; response
-              :format fmt
-              :where (or expression-end (point))
-              :duration eros-eval-result-duration)
-      (message fmt result))))
+  (when arei-ui-show-result-p
+    (let ((forward-sexp-function
+           (lambda (&rest args)
+             ;; see https://github.com/xiongtx/eros/issues/10
+             (ignore-errors (apply #'forward-sexp args))))
+          (truncate-lines nil))
+      (unless (eros--make-result-overlay (or result "") ; response
+                :format fmt
+                :where (or expression-end (point))
+                :duration eros-eval-result-duration)
+        (message fmt result)))))
 
 (provide 'arei-ui)
 ;;; arei-ui.el ends here
