@@ -102,6 +102,25 @@ Development related and other commands:
 ;;   "Return a list of all active Arei sesman sessions."
 ;;   (sesman-sessions 'Arei))
 
+(defun arei--sesman--format-link (link)
+  "Like original `sesman--format-link', but wraps values into format
+to ensure that they are string and propertize can handle them."
+  (let* ((system (sesman--lnk-system-name link))
+         (session (gethash (car link) sesman-sessions-hashmap)))
+    (format "%s(%s) -> %s [%s]"
+            (sesman--lnk-context-type link)
+            (propertize
+             (format "%s" (sesman--abbrev-path-maybe (sesman--lnk-value link)))
+             'face 'bold)
+            (propertize
+             (format "%s" (sesman--lnk-session-name link))
+             'face 'bold)
+            (if session
+                (sesman--format-session-objects system session)
+              "invalid"))))
+
+(advice-add 'sesman--format-link :override 'arei--sesman--format-link)
+
 (cl-defmethod sesman-project ((_system (eql Arei)))
   "Find project directory."
   (when (project-current)
