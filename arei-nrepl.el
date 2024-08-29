@@ -352,13 +352,22 @@ decoded message or nil if the strings were completely decoded."
       (erase-buffer)
       (cons string-q response-q))))
 
+(defun sort-plist-by-keys (plist)
+  "Return a new PLIST sorted by keys, keeping key-value pairs together."
+  (cl-loop with pairs = '()
+           for (key value) on plist by #'cddr
+           do (push (cons key value) pairs)
+           finally return
+           (cl-loop for (key . value) in (cl-sort pairs #'string< :key #'car)
+                    append (list key value))))
+
 (defun arei-nrepl-bencode (object)
   "Encode OBJECT with bencode.
 Integers, lists and arei-nrepl-dicts are treated according to bencode
 specification.  Everything else is encoded as string."
   (cond
    ((integerp object) (format "i%de" object))
-   ((arei-nrepl-dict-p object) (format "d%se" (mapconcat #'arei-nrepl-bencode (cdr object) "")))
+   ((arei-nrepl-dict-p object) (format "d%se" (mapconcat #'arei-nrepl-bencode (sort-plist-by-keys (cdr object)) "")))
    ((listp object) (format "l%se" (mapconcat #'arei-nrepl-bencode object "")))
    (t (format "%s:%s" (string-bytes object) object))))
 
