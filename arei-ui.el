@@ -89,7 +89,11 @@ A bit of a hack, but works fine."
             'arei-ui--eros--remove-result-overlay)
 
 (defun arei-ui-show-result (fmt result &optional expression-end)
-  "Show result with overlay if possible or message, when it's not."
+  "Show RESULT with overlay if possible or message, when it's not.
+FMT is a format string that determines how RESULT will be displayed.
+EXPRESSION-END may be a number or marker, applying the overlay to the
+whole line at that position (defaulting to `point').  If it’s a cons
+cell, its car and cdr specify the overlay’s start and end."
   (when arei-ui-show-result-p
     (let ((forward-sexp-function
            (lambda (&rest args)
