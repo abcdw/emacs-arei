@@ -60,7 +60,7 @@ to 10000."
 
 (defun arei-ui-blink-region (bounds)
   "Temporarily highlight the region from START to END."
-  (when arei-ui-blink-region-p
+  (when (and arei-ui-blink-region-p bounds)
     (let* ((start (car bounds))
            (end (cdr bounds))
            ;; TODO: [Nikita Domnitskii, 2024-07-25] should be a custom
