@@ -28,6 +28,7 @@
 (require 'arei-syntax)
 (require 'arei-nrepl)
 (require 'arei-ui)
+(require 'arei-stack)
 
 (eval-when-compile (require 'map))
 (eval-when-compile (require 'pcase))
@@ -49,7 +50,7 @@
   (let ((vals nil))
     (lambda (response)
       (pcase response
-        ((map status value out err)
+        ((map status value stack out err)
          ;; Jump to specific position only when there is something to print
          (when (or out err value)
            (goto-char (point-max)))
@@ -67,6 +68,8 @@
            (insert (propertize value 'face
                                '((t (:inherit font-lock-string-face)))))
            (insert "\n"))
+         (when stack
+           (arei--insert-stack stack))
 
          (when (and (member "multiple-values" status)
                     (not (member "done" status)))
