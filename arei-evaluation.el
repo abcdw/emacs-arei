@@ -50,7 +50,7 @@
   (let ((vals nil))
     (lambda (response)
       (pcase response
-        ((map status value stack out err)
+        ((map status value ares.evaluation/stack out err)
          ;; Jump to specific position only when there is something to print
          (when (or out err value)
            (goto-char (point-max)))
@@ -68,8 +68,8 @@
            (insert (propertize value 'face
                                '((t (:inherit font-lock-string-face)))))
            (insert "\n"))
-         (when stack
-           (arei--insert-stack stack))
+         (when ares.evaluation/stack
+           (arei--insert-stack ares.evaluation/stack))
 
          (when (and (member "multiple-values" status)
                     (not (member "done" status)))
