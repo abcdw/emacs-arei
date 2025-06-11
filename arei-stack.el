@@ -25,21 +25,29 @@
 
 ;;; Code:
 
+;; FIXME: for already opened files, we can set a marker to keep the
+;; right position even if the code is modified
+(defun arei--goto-source (source)
+  (let* ((file (arei-nrepl-dict-get source "file"))
+         (line (arei-nrepl-dict-get source "line"))
+         (column (arei-nrepl-dict-get source "column"))
+         (buffer (find-file-noselect file)))
+    (pop-to-buffer buffer #'display-buffer-reuse-window)
+    (goto-char (point-min))
+    (forward-line line)
+    (forward-char column)))
+
 (defun arei--insert-stack (stack)
-  (insert "Backtrace:\n")
+  (insert "Stack:\n")
   (dolist (frame stack)
     (let ((.source (arei-nrepl-dict-get frame "source"))
           (.procedure-name (arei-nrepl-dict-get frame "procedure-name"))
           (.arguments (arei-nrepl-dict-get frame "arguments")))
-      (insert "(")
+      (insert "  (")
       (if .source
           (insert-button .procedure-name
-                         'follow-link t
                          'action (lambda (_)
-                                   (find-file-other-window (arei-nrepl-dict-get .source "file") nil)
-                                   (goto-char (point-min))
-                                   (forward-line (arei-nrepl-dict-get .source "line"))
-                                   (forward-char (arei-nrepl-dict-get .source "column"))))
+                                   (arei--goto-source .source)))
         (insert .procedure-name))
       (mapcar (lambda (arg) (insert " " arg)) .arguments)
       (insert ")\n"))))

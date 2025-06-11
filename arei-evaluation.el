@@ -28,7 +28,7 @@
 (require 'arei-syntax)
 (require 'arei-nrepl)
 (require 'arei-ui)
-(require 'arei-stack)
+(require 'arei-debugger)
 
 (eval-when-compile (require 'map))
 (eval-when-compile (require 'pcase))
@@ -60,6 +60,8 @@
          (when out
            (insert out))
          (when err
+           (with-current-buffer connection-buffer
+             (setq arei--last-error err))
            (insert (propertize err 'face
                                '((t (:inherit font-lock-warning-face))))))
          (when value
@@ -69,7 +71,9 @@
                                '((t (:inherit font-lock-string-face)))))
            (insert "\n"))
          (when ares.evaluation/stack
-           (arei--insert-stack ares.evaluation/stack))
+           (arei-show-debugger
+            (or err "")
+            ares.evaluation/stack))
 
          (when (and (member "multiple-values" status)
                     (not (member "done" status)))
