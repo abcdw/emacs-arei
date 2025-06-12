@@ -32,10 +32,15 @@
          (line (arei-nrepl-dict-get source "line"))
          (column (arei-nrepl-dict-get source "column"))
          (buffer (find-file-noselect file)))
-    (pop-to-buffer buffer #'display-buffer-reuse-window)
-    (goto-char (point-min))
-    (forward-line line)
-    (forward-char column)))
+    (display-buffer buffer #'display-buffer-reuse-window)
+    (with-current-buffer buffer
+      (goto-line line)
+      (forward-char column)
+      (set-window-point
+       (get-buffer-window (current-buffer) 'visible)
+       (point))
+      (let ((pulse-delay 0.06))
+        (pulse-momentary-highlight-one-line)))))
 
 (defun arei--insert-stack (stack)
   (insert "Stack:\n")

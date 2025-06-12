@@ -26,13 +26,25 @@
   :doc "Keymap for debugging actions."
   "n" #'forward-button
   "<tab>" #'forward-button
+  "M-n" #'arei-debugger-next-frame
   "p" #'backward-button
-  "<backtab>" #'backward-button)
+  "<backtab>" #'backward-button
+  "M-p" #'arei-debugger-previous-frame)
 
 (define-derived-mode arei-debugger-mode
   special-mode "Arei Debugger"
   "Major mode for debugging an Arei evaluation."
   '())
+
+(defun arei-debugger-next-frame (n)
+  (interactive "p")
+  (forward-button n)
+  (save-excursion (push-button)))
+
+(defun arei-debugger-previous-frame (n)
+  (interactive "p")
+  (backward-button n)
+  (save-excursion (push-button)))
 
 (defun arei--debugger-buffer ()
   ;; FIXME: integrate with sesman so that buffer is closed with connection?
