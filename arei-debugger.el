@@ -61,7 +61,8 @@
         (arei--insert-stack stack)
         (insert (propertize err 'face '((t (:inherit font-lock-warning-face)))))
         (goto-char (point-min))))
-    (pop-to-buffer buffer)))
+    (when (fboundp arei-debugger-buffer-display-function)
+      (funcall arei-debugger-buffer-display-function buffer))))
 
 (provide 'arei-debugger)
 ;;; arei-debugger.el ends here

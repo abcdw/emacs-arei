@@ -63,6 +63,17 @@ most obvious candidates here."
   :type '(choice (function :tag "Function")
                  (const :tag "None" nil)))
 
+(defcustom arei-debugger-buffer-display-function 'pop-to-buffer
+  "Controls how to display the debugger buffer on exception and
+breakpoints.
+
+When set to nil the buffer will only be created, and not
+displayed.  When it set to function the buffer will be displayed
+using this function.  `display-buffer' and `pop-to-buffer' are
+most obvious candidates here."
+  :type '(choice (function :tag "Function")
+                 (const :tag "None" nil)))
+
 (defun arei--get-command-keybindings (command)
   "Return key bindings for COMMAND as a comma-separated string."
   (let ((keys (mapcar 'key-description (where-is-internal command nil nil t))))
