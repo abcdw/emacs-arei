@@ -21,11 +21,14 @@
 
 (defun arei-call-meta-command (name)
   (interactive (list (arei-choose-meta-command)))
-  (let ((arguments (read-from-minibuffer (concat "," name " "))))
+  (let* ((arguments (read-from-minibuffer (concat "," name " ")))
+         (request (arei-nrepl-dict "op" "ares.guile.meta-commands/call"
+                                   "command" name
+                                   "arguments" arguments)))
+    (when-let* ((module (arei-current-module)))
+      (arei-nrepl-dict-put request "ns" module))
     (arei-client-send-request
-     (arei-nrepl-dict "op" "ares.guile.meta-commands/call"
-                      "command" name
-                      "arguments" arguments)
+     request
      (arei--process-user-eval-response-callback (current-buffer))
      (arei--user-evaluation-session-id))))
 
