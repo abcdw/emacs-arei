@@ -10,12 +10,14 @@
 (require 'arei-client)
 (require 'arei-evaluation)
 
+(defvar arei-meta-command-history '())
+
 (defun arei-choose-meta-command ()
   (let* ((reply (arei-client-send-sync-request
                  (arei-nrepl-dict "op" "ares.guile.meta-commands/list")
                  nil))
          (commands (arei-nrepl-dict-get reply "names")))
-    (completing-read "Meta-command: " commands)))
+    (completing-read "Meta-command: " commands nil nil nil 'arei-meta-command-history)))
 
 (defun arei-call-meta-command (name)
   (interactive (list (arei-choose-meta-command)))
