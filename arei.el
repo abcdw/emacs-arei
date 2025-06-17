@@ -38,6 +38,7 @@
 (require 'arei-evaluation)
 (require 'arei-module)
 (require 'arei-macroexpansion)
+(require 'arei-meta-commands)
 (require 'scheme)
 (require 'sesman)
 (eval-when-compile (require 'subr-x))
@@ -331,6 +332,7 @@ variable to nil to disable the mode line entirely.")
   "C-c C-i" #'arei-interrupt-evaluation
   "C-c M-m" arei-module-map
   "C-c C-m" arei-macroexpansion-map
+  "C-c M-x" #'arei-call-meta-command
 
   "C-M-x" #'arei-evaluate-enclosing-outer-form
   "C-c C-c" #'arei-evaluate-enclosing-inner-form)
