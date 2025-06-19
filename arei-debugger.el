@@ -1,7 +1,8 @@
 ;;; arei-debugger.el --- Debugger functionality for Arei    -*- lexical-binding: t; -*-
 
-;; Copyright © 2025 Libre en Communs <contact@a-lec.org>
-;; Copyright © 2025 Noé Lopez <noelopez@free.fr>
+;; SPDX-FileCopyrightText: 2025 Libre en Communs <contact@a-lec.org>
+;; SPDX-FileCopyrightText: 2025 Noé Lopez <noelopez@free.fr>
+;; SPDX-FileCopyrightText: 2025 Andrew Tropin <andrew@trop.in>
 
 ;; Author: Noé Lopez <noelopez@free.fr>
 
@@ -56,10 +57,18 @@
   (let ((buffer (arei--debugger-buffer)))
     (with-current-buffer buffer
       (arei-debugger-mode)
+      (toggle-truncate-lines 1)
       (let ((inhibit-read-only t))
         (erase-buffer)
         (arei--insert-stack stack)
-        (insert (propertize err 'face '((t (:inherit font-lock-warning-face)))))
+        (insert "\n")
+
+        (when err
+          (insert "Exception:\n")
+          (insert
+           (propertize err 'face '((t (:inherit font-lock-warning-face)))))
+          (insert "\n"))
+
         (goto-char (point-min))))
     (when (fboundp arei-debugger-buffer-display-function)
       (funcall arei-debugger-buffer-display-function buffer))))

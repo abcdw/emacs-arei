@@ -1,6 +1,6 @@
 ;;; arei-evaluation.el --- Evaluation for Arei  -*- lexical-binding: t; -*-
 
-;; Copyright © 2023, 2024 Andrew Tropin <andrew@trop.in>
+;; Copyright © 2023, 2024, 2025 Andrew Tropin <andrew@trop.in>
 ;; Copyright © 2024 Nikita Domnitskii
 
 ;; Author: Andrew Tropin <andrew@trop.in>
@@ -71,9 +71,7 @@
                                '((t (:inherit font-lock-string-face)))))
            (insert "\n"))
          (when ares.evaluation/stack
-           (arei-show-debugger
-            (or err "")
-            ares.evaluation/stack))
+           (arei-show-debugger err ares.evaluation/stack))
 
          (when (and (member "multiple-values" status)
                     (not (member "done" status)))
