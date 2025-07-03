@@ -40,6 +40,9 @@ and responses.")
 (defvar-local arei-client--nrepl-sessions nil
   "A hash-table containing name and session-id association.")
 
+(defvar-local arei-client--loaded-extensions nil
+  "A list containing names of extensions that we know are loaded.")
+
 (defvar arei-client-sync-timeout 5
   "Number of seconds to wait for a syncronous request's response.")
 
@@ -358,6 +361,32 @@ ephemeral session."
    (arei-connection-buffer)
    session-id
    timeout-callback))
+
+
+;;;
+;;; Extensions
+;;;
+
+(defun arei-client-require-extension (name expr)
+  "Require that an extension with NAME is loaded in Ares. EXPR is a
+Scheme expression as a string that should return the extension's
+procedure. Throw an error if the expression could not be loaded.
+
+For example:
+(arei-client-require-extension
+ \"ares.guile.meta-commands\"
+ \"(@ (ares-extension ares guile meta-commands) ares.guile.meta-commands)\")"
+  (arei-with-connection-buffer
+   (unless (member name arei-client--loaded-extensions)
+     (let* ((reply (arei-client-send-sync-request
+                    (arei-nrepl-dict "op" "ares.extension/add-extension"
+                                     "extension" expr)
+                    nil))
+            (status (arei-nrepl-dict-get reply "status")))
+       (if (and (member "error" status)
+                (not (member "feature-already-provided" status)))
+           (error "could not load %s extension: %s" name (arei-nrepl-dict-get reply "error"))
+         (setq arei-client--loaded-extensions (cons name arei-client--loaded-extensions)))))))
 
 (provide 'arei-client)
 ;;; arei-client.el ends here
