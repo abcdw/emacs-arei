@@ -12,7 +12,14 @@
 
 (defvar arei-meta-command-history '())
 
+(defun arei-ensure-meta-command ()
+  "Ensure the meta-commands extension is loaded."
+  (arei-client-require-extension
+   "ares.guile.meta-commands"
+   "(@ (ares-extension ares guile meta-commands) ares.guile.meta-commands)"))
+
 (defun arei-choose-meta-command ()
+  (arei-ensure-meta-command)
   (let* ((reply (arei-client-send-sync-request
                  (arei-nrepl-dict "op" "ares.guile.meta-commands/list")
                  nil))
