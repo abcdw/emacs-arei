@@ -34,7 +34,7 @@
          (buffer (find-file-noselect file)))
     (display-buffer buffer #'display-buffer-reuse-window)
     (with-current-buffer buffer
-      (goto-line line)
+      (goto-line (1+ line))             ;Guile lines start at zero, emacs at one
       (forward-char column)
       (set-window-point
        (get-buffer-window (current-buffer) 'visible)
