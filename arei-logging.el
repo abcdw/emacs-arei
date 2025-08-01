@@ -15,7 +15,7 @@
 (eval-when-compile (require 'pcase))
 
 
-(defun arei--logging-callback ()
+(defun arei-logging--callback ()
   "Set up a handler for `ares.logging/set-verbosity' request responses."
   (lambda (response)
     (pcase response
@@ -41,7 +41,7 @@ Which should not happen, but it is what is."))
                    "op" "ares.logging/set-verbosity")))
     (arei-client-send-request
      request
-     (arei--logging-callback)
+     (arei-logging--callback)
      (arei--tooling-session-id))))
 
 (defun arei-logging-disable ()
@@ -52,7 +52,7 @@ Which should not happen, but it is what is."))
                    "op" "ares.logging/set-verbosity")))
     (arei-client-send-request
      request
-     (arei--logging-callback)
+     (arei-logging--callback)
      (arei--tooling-session-id))))
 
 (defvar-keymap arei-logging-map
