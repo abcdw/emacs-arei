@@ -25,12 +25,12 @@
 
 (defvar-keymap arei-debugger-mode-map
   :doc "Keymap for debugging actions."
-  "n" #'forward-button
+  "M-n" #'forward-button
   "<tab>" #'forward-button
-  "M-n" #'arei-debugger-next-frame
-  "p" #'backward-button
+  "n" #'arei-debugger-next-frame
+  "M-p" #'backward-button
   "<backtab>" #'backward-button
-  "M-p" #'arei-debugger-previous-frame)
+  "p" #'arei-debugger-previous-frame)
 
 (define-derived-mode arei-debugger-mode
   special-mode "Arei Debugger"
