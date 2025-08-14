@@ -39,6 +39,7 @@
 (require 'arei-module)
 (require 'arei-macroexpansion)
 (require 'arei-logging)
+(require 'arei-testing)
 (require 'arei-meta-commands)
 (require 'scheme)
 (require 'sesman)
@@ -334,6 +335,7 @@ variable to nil to disable the mode line entirely.")
   "C-c M-m" arei-module-map
   "C-c C-m" arei-macroexpansion-map
   "C-c C-l" arei-logging-map
+  "C-c C-t" arei-testing-map
   "C-c M-x" #'arei-call-meta-command
 
   "C-M-x" #'arei-evaluate-enclosing-outer-form
