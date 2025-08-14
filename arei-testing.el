@@ -74,6 +74,15 @@
      ;; testing
      (arei--user-evaluation-session-id))))
 
+(defun arei-testing-load-project-tests ()
+  (interactive)
+  (let* ((request (arei-nrepl-dict
+                   "op" "ares.testing/load-project-tests")))
+    (arei-client-send-request
+     request
+     (arei-testing--callback (current-buffer) (point))
+     (arei--user-evaluation-session-id))))
+
 (defvar arei-testing-base-command "make check"
   "Base command for running tests.")
 
@@ -134,7 +143,8 @@ Tests selected: %d\n"
 
 (defvar-keymap arei-testing-map
   "C-t" #'arei-testing-run
-  "C-m" #'arei-testing-menu)
+  "C-m" #'arei-testing-menu
+  "C-p" #'arei-testing-load-project-tests)
 
 (provide 'arei-testing)
 ;;; arei-testing.el ends here
