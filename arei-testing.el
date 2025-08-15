@@ -83,6 +83,21 @@
      (arei-testing--callback (current-buffer) (point))
      (arei--user-evaluation-session-id))))
 
+(defun arei-testing-load-module-tests ()
+  (interactive)
+  (let* ((module (arei-current-module))
+         (request (arei-nrepl-dict
+                   "op" "ares.testing/load-module-tests"
+                   "module" module)))
+    (unless module
+      (user-error "\
+There is no Scheme module associated with this buffer.  Please, call \
+this function from different buffer."))
+    (arei-client-send-request
+     request
+     (arei-testing--callback (current-buffer) (point))
+     (arei--user-evaluation-session-id))))
+
 (defvar arei-testing-base-command "make check"
   "Base command for running tests.")
 
@@ -143,7 +158,8 @@ Tests selected: %d\n"
 
 (defvar-keymap arei-testing-map
   "C-t" #'arei-testing-run
-  "C-m" #'arei-testing-menu
+  "C-n" #'arei-testing-menu
+  "C-m" #'arei-testing-load-module-tests
   "C-p" #'arei-testing-load-project-tests)
 
 (provide 'arei-testing)
