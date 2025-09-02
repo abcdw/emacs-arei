@@ -13,6 +13,24 @@
 (eval-when-compile (require 'map))
 (eval-when-compile (require 'pcase))
 
+(defun arei-testing--get-success-face ()
+  `((t :inherit diff-refine-added
+       :weight bold)))
+
+(defun arei-testing--get-failure-face ()
+  `((t :inherit diff-refine-removed
+       :weight bold)))
+
+(defvar arei-testing-start-symbol "⚙️"
+  "The symbol used before test execution.")
+
+(defvar arei-testing-success-symbol "✓"
+  "The symbol used on successful test execution.")
+
+(defvar arei-testing-failure-symbol "☠️"
+  ;; Sample alterantives: ⚠️
+  "The symbol used on faulty test execution.")
+
 (defun arei-testing--callback
     (connection-buffer &optional expression-end)
   "Set up a handler for eval request responses."
@@ -34,31 +52,38 @@
              (setq arei--last-error err))
            (insert (propertize err 'face
                                '((t (:inherit font-lock-warning-face))))))
+
          (when value
            (unless (= 0 (current-column))
              (insert "\n"))
-           (insert (propertize value 'face
+           (insert (propertize "Tests execution finished" 'face
                                '((t (:inherit font-lock-string-face)))))
            (insert "\n"))
-         (when ares.evaluation/stack
-           (arei-show-debugger err ares.evaluation/stack))
-
-         (when (and (member "multiple-values" status)
-                    (not (member "done" status)))
-           (push value vals))
 
          (when (member "done" status)
-           (with-current-buffer connection-buffer
-             (let* ((value (or (and (member "multiple-values" status)
-                                    (if vals
-                                        (mapconcat
-                                         (lambda (v) (concat " => " v))
-                                         (reverse vals)
-                                         "\n")
-                                      " => "))
-                               (and value (concat " => " value))))
-                    (fmt (if value "%s" " ;; interrupted")))
-               (arei-ui-show-result fmt value expression-end))))
+           (let-alist (read value)
+             (let ((run-summary
+                    (format
+                     "errors: %s, failures: %s, assertions: %s, tests: %s"
+                     .errors .failures .assertions .tests)))
+               (if (< 0 (+ .errors .failures))
+                   (let ((error-face (arei-testing--get-failure-face)))
+                     (message
+                      (concat (propertize
+                               (concat " " arei-testing-failure-symbol " ")
+                               'face error-face)
+                              " Failed some tests! %s")
+                      run-summary))
+                 (let ((success-face (arei-testing--get-success-face)))
+                   (message
+                    (concat
+                     (propertize
+                      (concat " " arei-testing-success-symbol " ")
+                      'face success-face)
+                     " Passed all tests! %s") run-summary))))))
+
+         (when ares.evaluation/stack
+           (arei-show-debugger err ares.evaluation/stack))
 
          (when (get-buffer-window)
            (set-window-point (get-buffer-window) (buffer-size))))))))
@@ -67,6 +92,11 @@
   (interactive)
   (let* ((request (arei-nrepl-dict
                    "op" "ares.testing/run")))
+    (message
+     (concat
+      (propertize (concat " " arei-testing-start-symbol " ")
+                  'face 'diff-function)
+      " Little gnomes are executing your tests!"))
     (arei-client-send-request
      request
      (arei-testing--callback (current-buffer) (point))
