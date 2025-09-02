@@ -98,9 +98,6 @@ this function from different buffer."))
      (arei-testing--callback (current-buffer) (point))
      (arei--user-evaluation-session-id))))
 
-(defvar arei-testing-base-command "make check"
-  "Base command for running tests.")
-
 (transient-define-argument arei-testing--parallel ()
   :description "Run in parallel"
   :class 'transient-switch
@@ -114,17 +111,6 @@ this function from different buffer."))
   :shortarg "-f"
   :key "-f"
   :argument "--fail-fast")
-
-(transient-define-suffix arei-testing-rerun-plain ()
-  "Rerun last test command without modifications."
-  (interactive)
-  (compile arei-testing-base-command))
-
-(transient-define-suffix arei-testing-rerun-with-flags ()
-  "Rerun tests with current flags."
-  (interactive)
-  (let ((flags (mapconcat #'identity (transient-args transient-current-command) " ")))
-    (compile (concat arei-testing-base-command " " flags))))
 
 (defvar arei-testing--loaded-tests-count 0
   "Number of loaded tests. Should be set by your test framework.")
@@ -146,15 +132,15 @@ Tests selected: %d\n"
             selected-tests-count)))
 
 (transient-define-prefix arei-testing-menu ()
-  "Test execution menu."
+  "Test runner configuration menu."
   :value (list "--parallel" "--fail-fast")
   [:description arei-testing--display-test-count
    ["Switches"
     (arei-testing--parallel)
     (arei-testing--fail-fast)]
    ["Actions"
-    ("r" "Rerun plain" arei-testing-rerun-plain)
-    ("R" "Rerun with flags" arei-testing-rerun-with-flags)]])
+    ("r" "Rerun" arei-testing-run)
+    ("t" "Rerun" arei-testing-run)]])
 
 (defvar-keymap arei-testing-map
   "C-t" #'arei-testing-run
