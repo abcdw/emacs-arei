@@ -13,14 +13,6 @@
 (eval-when-compile (require 'map))
 (eval-when-compile (require 'pcase))
 
-(defun arei-testing--get-success-face ()
-  `((t :inherit diff-refine-added
-       :weight bold)))
-
-(defun arei-testing--get-failure-face ()
-  `((t :inherit diff-refine-removed
-       :weight bold)))
-
 (defvar arei-testing-start-symbol "⚙️"
   "The symbol used before test execution.")
 
@@ -31,8 +23,50 @@
   ;; Sample alterantives: ⚠️
   "The symbol used on faulty test execution.")
 
-(defun arei-testing--callback
-    (connection-buffer &optional expression-end)
+(defface arei-testing-success-face
+  '((t :inherit diff-refine-added
+       :weight bold))
+  "Face for `arei-testing-success-symbol'."
+  :group 'arei-testing)
+
+(defface arei-testing-failure-face
+  '((t :inherit diff-refine-removed
+       :weight bold))
+  "Face for `arei-testing-failure-symbol'."
+  :group 'arei-testing)
+
+(defun arei-testing--handle-run-results (response)
+  (pcase response
+    ((map status value ares.evaluation/stack out err)
+
+     (when value
+       (unless (= 0 (current-column))
+         (insert "\n"))
+       (insert (propertize "Tests execution finished" 'face
+                           '((t (:inherit font-lock-string-face)))))
+       (insert "\n"))
+
+     (when (member "done" status)
+       (let-alist (read value)
+         (let ((run-summary
+                (format
+                 "errors: %s, failures: %s, assertions: %s, tests: %s"
+                 .errors .failures .assertions .tests)))
+           (if (< 0 (+ .errors .failures))
+               (message
+                (concat (propertize
+                         (concat " " arei-testing-failure-symbol " ")
+                         'face 'arei-testing-failure-face)
+                        " Failed some tests! %s")
+                run-summary)
+             (message
+              (concat
+               (propertize
+                (concat " " arei-testing-success-symbol " ")
+                'face 'arei-testing-success-face)
+               " Passed all tests! %s") run-summary))))))))
+
+(defun arei-testing--eval-callback (connection-buffer handle-response)
   "Set up a handler for eval request responses."
   (let ((vals nil))
     (lambda (response)
@@ -53,34 +87,7 @@
            (insert (propertize err 'face
                                '((t (:inherit font-lock-warning-face))))))
 
-         (when value
-           (unless (= 0 (current-column))
-             (insert "\n"))
-           (insert (propertize "Tests execution finished" 'face
-                               '((t (:inherit font-lock-string-face)))))
-           (insert "\n"))
-
-         (when (member "done" status)
-           (let-alist (read value)
-             (let ((run-summary
-                    (format
-                     "errors: %s, failures: %s, assertions: %s, tests: %s"
-                     .errors .failures .assertions .tests)))
-               (if (< 0 (+ .errors .failures))
-                   (let ((error-face (arei-testing--get-failure-face)))
-                     (message
-                      (concat (propertize
-                               (concat " " arei-testing-failure-symbol " ")
-                               'face error-face)
-                              " Failed some tests! %s")
-                      run-summary))
-                 (let ((success-face (arei-testing--get-success-face)))
-                   (message
-                    (concat
-                     (propertize
-                      (concat " " arei-testing-success-symbol " ")
-                      'face success-face)
-                     " Passed all tests! %s") run-summary))))))
+         (funcall handle-response response)
 
          (when ares.evaluation/stack
            (arei-show-debugger err ares.evaluation/stack))
@@ -99,7 +106,9 @@
       " Little gnomes are executing your tests!"))
     (arei-client-send-request
      request
-     (arei-testing--callback (current-buffer) (point))
+     (arei-testing--eval-callback
+      (current-buffer)
+      'arei-testing--handle-run-results)
      ;; TODO: [Andrew Tropin, 2025-08-14] Use a separate session for
      ;; testing
      (arei--user-evaluation-session-id))))
@@ -108,9 +117,14 @@
   (interactive)
   (let* ((request (arei-nrepl-dict
                    "op" "ares.testing/load-project-tests")))
+    (message "Loading project tests...")
     (arei-client-send-request
      request
-     (arei-testing--callback (current-buffer) (point))
+     (arei-testing--eval-callback
+      (current-buffer)
+      (lambda (r)
+        (when (member "done" (arei-nrepl-dict-get r "status"))
+          (message "Project tests are loaded."))))
      (arei--user-evaluation-session-id))))
 
 (defun arei-testing-load-module-tests ()
@@ -123,9 +137,14 @@
       (user-error "\
 There is no Scheme module associated with this buffer.  Please, call \
 this function from different buffer."))
+    (message "Loading tests for module %s..." module)
     (arei-client-send-request
      request
-     (arei-testing--callback (current-buffer) (point))
+     (arei-testing--eval-callback
+      (current-buffer)
+      (lambda (r)
+        (when (member "done" (arei-nrepl-dict-get r "status"))
+          (message "Tests for module %s are loaded." module))))
      (arei--user-evaluation-session-id))))
 
 (transient-define-argument arei-testing--parallel ()
