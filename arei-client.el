@@ -225,9 +225,13 @@ exist."
     ((map id status)
      (when-let* ((pending-request (gethash id arei-client--pending-requests)))
        (when-let (callback (cdr pending-request))
-         (funcall callback response))
+         (condition-case err
+             (funcall callback response)
+           (error
+            (message "Error happened in callback: %s"
+                     (error-message-string err)))))
        (when (member "done" status)
-           (remhash id arei-client--pending-requests))))))
+         (remhash id arei-client--pending-requests))))))
 
 (defun arei-client--connect (params)
   "Call callback after connection is established."
