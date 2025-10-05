@@ -37,7 +37,7 @@
 
 (defun arei-testing--handle-run-results (response)
   (pcase response
-    ((map status value ares.evaluation/stack out err)
+    ((map status value ares.evaluation/stack out ares.exception)
 
      (when value
        (unless (= 0 (current-column))
@@ -46,7 +46,10 @@
                            '((t (:inherit font-lock-string-face)))))
        (insert "\n"))
 
-     (when (member "done" status)
+     (when (member "error" status)
+       (message "Error during test run: %s" ares.exception))
+
+     (when (and (= 1 (length status)) (member "done" status))
        (let-alist (read value)
          (let ((run-summary
                 (format
