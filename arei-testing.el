@@ -194,6 +194,32 @@ Tests selected: %d\n"
     ("r" "Rerun" arei-testing-run)
     ("t" "Rerun" arei-testing-run)]])
 
+(defun arei-testing--get-filtered-tests (pattern return-candidates-callback)
+  "Display number of loaded tests."
+  (let* ((request (arei-nrepl-dict
+                   "op" "ares.testing/get-filtered-tests"
+                   "ares.testing/filter-pattern" pattern))
+         (response (arei-client-send-sync-request
+                    request
+                    (arei--user-evaluation-session-id))))
+    (funcall return-candidates-callback
+             (read (arei-nrepl-dict-get response "value")))))
+
+(require 'consult)
+
+(defun arei-testing-get-filter-regexp ()
+  (interactive)
+  (consult--read
+   (consult--dynamic-collection
+       (lambda (input callback)
+         (arei-testing--get-filtered-tests input callback))
+     :min-input 0
+     :debounce 0
+     :throttle 0)
+   :prompt "Matching tests: "
+   :initial ""
+   :sort nil))
+
 (defvar-keymap arei-testing-map
   "C-t" #'arei-testing-run
   "C-n" #'arei-testing-menu
