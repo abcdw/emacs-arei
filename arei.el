@@ -52,10 +52,6 @@
   :prefix "arei-"
   :group 'applications)
 
-(defcustom arei-mode-auto t
-  "Whether `arei-mode' should be active by default in all scheme buffers."
-  :type 'boolean)
-
 (defcustom arei-connection-buffer-display-function 'display-buffer
   "Controls how to display the connection buffer on connect.
 
@@ -327,6 +323,8 @@ variable to nil to disable the mode line entirely.")
 (put 'arei-mode-line 'risky-local-variable t)
 
 (defvar-keymap arei-mode-map
+  "C-c C-a" #'arei
+  "C-c C-s" 'sesman-map
   "C-c C-z" #'arei-switch-to-connection-buffer
   "C-c C-e" arei-evaluation-keymap
   "C-x C-e" #'arei-evaluate-last-sexp
@@ -352,6 +350,9 @@ variable to nil to disable the mode line entirely.")
   (if arei-mode
       (progn
         (setq sesman-system 'Arei)
+        (unless (keymap-lookup (easy-menu-lookup-name scheme-mode-map 'menu-bar)
+                               "<sesman>")
+          (sesman-install-menu scheme-mode-map))
         (add-hook 'eldoc-documentation-functions #'arei-eldoc-arglist nil t)
         (add-hook 'completion-at-point-functions #'arei-complete-at-point nil t)
         (add-hook 'xref-backend-functions #'arei--xref-backend nil t)
@@ -364,12 +365,6 @@ variable to nil to disable the mode line entirely.")
     (remove-hook 'sesman-post-command-hook #'arei-client-clear-sesman-session-cache t)))
 
 ;;;###autoload
-(defun arei-mode--maybe-activate ()
-  "Activates `arei-mode' if `arei-mode-auto' is t."
-  (when arei-mode-auto
-    (arei-mode)))
-
-;;;###autoload
 (defun arei ()
   "Connect to nrepl server."
   (interactive)
@@ -377,28 +372,15 @@ variable to nil to disable the mode line entirely.")
       (sesman-restart)
       (sesman-start)))
 
-;;;###autoload
-(defun arei--enable-on-existing-scheme-buffers ()
-  "Enable Arei's minor mode on existing Scheme buffers.
-See command `arei-mode'."
-  (let ((scm-buffers (seq-filter
-                      (lambda (buffer)
-                        (with-current-buffer buffer
-                          (derived-mode-p 'scheme-mode)))
-                      (buffer-list))))
-    (dolist (buffer scm-buffers)
-      (with-current-buffer buffer
-        (unless arei-mode
-          (arei-mode--maybe-activate))))))
+(defun arei--on ()
+  (when (memq major-mode global-arei-modes)
+    (arei-mode)))
 
 ;;;###autoload
-(with-eval-after-load 'scheme
-  (keymap-set scheme-mode-map "C-c C-a" #'arei)
-  (keymap-set scheme-mode-map "C-c C-s" 'sesman-map)
-  (require 'sesman) ; sesman-install-menu is not autoloaded
-  (sesman-install-menu scheme-mode-map)
-  (add-hook 'scheme-mode-hook 'arei-mode--maybe-activate)
-  (arei--enable-on-existing-scheme-buffers))
+(define-globalized-minor-mode global-arei-mode
+  arei-mode arei--on
+  :group 'arei
+  :predicate '(scheme-mode))
 
 ;; TODO: Scratch buffer
 
