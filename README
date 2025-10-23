@@ -24,6 +24,7 @@ Watch a [[https://emacsconf.org/2023/talks/scheme/][talk]] from EmacsConf 2023 w
 demo of provided functionality.
 
 * Usage
+** Installation
 1. Install [[https://git.sr.ht/~abcdw/emacs-arei][Arei]] (Guile Scheme IDE for Emacs).
 2. Install [[https://git.sr.ht/~abcdw/guile-ares-rs][Guile Ares RS]] (an nREPL-compatible RPC server for guile).
 
@@ -45,14 +46,40 @@ guix shell emacs emacs-arei -- \ # line is optional, it provides Emacs and Arei
 emacs
 #+end_src
 
+** Configuration
+Make sure Arei package is loaded ~(require 'arei)~, open Scheme buffer
+and activate Arei mode ~M-x arei-mode~ there.
+
 *Tip*: If you have [[https://gitlab.com/emacs-geiser/geiser][geiser]] intalled and want to prevent it from
 interfering into completion (CAPF), you can set ~(setq
 geiser-mode-auto-p nil)~ in ~init.el~ or some other place.
 
-Make sure Arei package is loaded ~(require 'arei)~, open Scheme buffer
-and connect to RPC server ~M-x sesman-start RET~ (~C-c C-s C-s~), if your
-server is run on a different port, use universal argument (prefix):
-~C-u M-x sesman-start RET~.
+In order to activate Arei in all Scheme buffers by default, add one of
+the following snippets to your Emacs configuration:
+
+#+begin_src emacs-lisp
+  (when (locate-library "arei.el")
+    (require 'arei)
+    ;; If you have geiser installed and want to prevent it from
+    ;; interfering with completion (CAPF)
+    (setq geiser-mode-auto-p nil)
+    ;; Automatically enable `arei-mode` in Scheme buffers.
+    (global-arei-mode))
+
+  ;; Alternatively, if you prefer `use-package':
+  (use-package geiser
+    :when (locate-library "arei.el")
+    :custom (geiser-mode-auto-p nil))
+  (use-package arei
+    :when (locate-library "arei.el")
+    :config (global-arei-mode))
+#+end_src
+
+** Connecting to a server
+In a buffer with both ~scheme-mode~ and ~arei-mode~ enabled, connect to
+the RPC server with ~M-x sesman-start RET~ (bound by default in
+~arei-mode~ to ~C-c C-s C-s~).  If your server is run on a different port,
+use universal argument (prefix): ~C-u M-x sesman-start RET~.
 
 *Tip*: There is no documentation functionality in Arei and Ares RS at
 the moment, but you can lookup documentation for most of the Guile and
