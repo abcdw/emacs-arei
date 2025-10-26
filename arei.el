@@ -326,14 +326,14 @@ variable to nil to disable the mode line entirely.")
   "C-c C-a" #'arei
   "C-c C-s" 'sesman-map
   "C-c C-z" #'arei-switch-to-connection-buffer
-  "C-c C-e" arei-evaluation-keymap
+  "C-c C-e" 'arei-evaluation-keymap
   "C-x C-e" #'arei-evaluate-last-sexp
   "C-c C-k" #'arei-evaluate-buffer
   "C-c C-i" #'arei-interrupt-evaluation
-  "C-c M-m" arei-module-map
-  "C-c C-m" arei-macroexpansion-map
-  "C-c C-l" arei-logging-map
-  "C-c C-t" arei-testing-map
+  "C-c M-m" 'arei-module-map
+  "C-c C-m" 'arei-macroexpansion-map
+  "C-c C-l" 'arei-logging-map
+  "C-c C-t" 'arei-testing-map
   "C-c M-x" #'arei-call-meta-command
 
   "C-M-x" #'arei-evaluate-enclosing-outer-form
