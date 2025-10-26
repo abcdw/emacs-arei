@@ -339,6 +339,10 @@ variable to nil to disable the mode line entirely.")
   "C-M-x" #'arei-evaluate-enclosing-outer-form
   "C-c C-c" #'arei-evaluate-enclosing-inner-form)
 
+(defvar-local arei-mode--state nil
+  "Previous state of buffer before `arei-mode' was activated.
+Intended to be passed to `buffer-local-restore-state'.")
+
 ;;;###autoload
 (define-minor-mode arei-mode
   "Minor mode for REPL interaction from a buffer.
@@ -349,7 +353,7 @@ variable to nil to disable the mode line entirely.")
   :keymap arei-mode-map
   (if arei-mode
       (progn
-        (setq sesman-system 'Arei)
+        (setq-local arei-mode--state (buffer-local-set-state sesman-system 'Arei))
         (unless (keymap-lookup (easy-menu-lookup-name scheme-mode-map 'menu-bar)
                                "<sesman>")
           (sesman-install-menu scheme-mode-map))
@@ -358,6 +362,7 @@ variable to nil to disable the mode line entirely.")
         (add-hook 'xref-backend-functions #'arei--xref-backend nil t)
         (add-hook 'kill-buffer-hook #'arei-client-remove-from-sesman-session-cache nil t)
         (add-hook 'sesman-post-command-hook #'arei-client-clear-sesman-session-cache nil t))
+    (buffer-local-restore-state arei-mode--state)
     (remove-hook 'completion-at-point-functions #'arei-complete-at-point t)
     (remove-hook 'xref-backend-functions #'arei--xref-backend t)
     (remove-hook 'eldoc-documentation-functions #'arei-eldoc-arglist t)
