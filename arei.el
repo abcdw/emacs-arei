@@ -375,7 +375,7 @@ Intended to be passed to `buffer-local-restore-state'.")
   (interactive)
   (if (sesman-current-session 'Arei)
       (sesman-restart)
-      (sesman-start)))
+    (sesman-start)))
 
 (defun arei--on ()
   (when (memq major-mode global-arei-modes)
