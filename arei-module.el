@@ -84,6 +84,7 @@ something like that."
            (arei--process-module-response-callback module))))))
 
 (defvar-keymap arei-module-map
+  :prefix 'arei-module-map
   "M-r" #'arei-reload-module
   "M-m" #'arei-goto-module)
 

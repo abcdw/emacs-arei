@@ -221,6 +221,7 @@ Tests selected: %d\n"
    :sort nil))
 
 (defvar-keymap arei-testing-map
+  :prefix 'arei-testing-map
   "C-t" #'arei-testing-run
   "C-n" #'arei-testing-menu
   "C-m" #'arei-testing-load-module-tests

@@ -232,6 +232,7 @@ up to next enclosing forms."
   (arei--request-user-eval nil (arei-syntax-list-at-point)))
 
 (defvar-keymap arei-evaluation-keymap
+  :prefix 'arei-evaluation-keymap
   "C-e" #'arei-evaluate-last-sexp
   "C-b" #'arei-evaluate-buffer
   "C-r" #'arei-evaluate-region

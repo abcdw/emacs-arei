@@ -77,6 +77,7 @@
   (arei--request-guile-macroexpand nil (arei-syntax-last-sexp-bounds)))
 
 (defvar-keymap arei-macroexpansion-map
+  :prefix 'arei-macroexpansion-map
   "C-m" #'arei-macroexpand-last-sexp)
 
 (provide 'arei-macroexpansion)

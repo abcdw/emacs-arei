@@ -56,6 +56,7 @@ Which should not happen, but it is what is."))
      (arei--tooling-session-id))))
 
 (defvar-keymap arei-logging-map
+  :prefix 'arei-logging-map
   "C-e" #'arei-logging-enable
   "C-d" #'arei-logging-disable)
 
