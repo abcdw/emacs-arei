@@ -3,6 +3,6 @@
 /.dir-locals-2.el
 *.elc
 /worktrees/
-/emacs-arei-autoloads.el
-/emacs-arei-pkg.el
+emacs-arei-autoloads.el
+emacs-arei-pkg.el
 /dir
