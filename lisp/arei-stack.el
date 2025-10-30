@@ -34,7 +34,8 @@
          (buffer (find-file-noselect file)))
     (display-buffer buffer #'display-buffer-reuse-window)
     (with-current-buffer buffer
-      (goto-line (1+ line))             ;Guile lines start at zero, emacs at one
+      (goto-char (point-min))
+      (forward-line line) ; Guile lines start at zero, Emacs at one.
       (forward-char column)
       (set-window-point
        (get-buffer-window (current-buffer) 'visible)
@@ -54,7 +55,7 @@
                          'action (lambda (_)
                                    (arei--goto-source .source)))
         (insert .procedure-name))
-      (mapcar (lambda (arg) (insert " " arg)) .arguments)
+      (mapc (lambda (arg) (insert " " arg)) .arguments)
       (insert ")\n"))))
 
 (provide 'arei-stack)

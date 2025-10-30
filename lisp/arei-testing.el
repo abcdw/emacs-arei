@@ -37,7 +37,7 @@
 
 (defun arei-testing--handle-run-results (response)
   (pcase response
-    ((map status value ares.evaluation/stack out ares.exception)
+    ((map status value ares.exception)
 
      (when value
        (unless (= 0 (current-column))
@@ -71,30 +71,30 @@
 
 (defun arei-testing--eval-callback (connection-buffer handle-response)
   "Set up a handler for eval request responses."
-  (let ((vals nil))
-    (lambda (response)
-      ;; (message "%s" response)
-      (pcase response
-        ((map status value ares.evaluation/stack out err)
-         ;; Jump to specific position only when there is something to print
-         (when (or out err value)
-           (goto-char (point-max)))
+  (ignore connection-buffer) ; Preserve this function's arity.
+  (lambda (response)
+    ;; (message "%s" response)
+    (pcase response
+      ((map status value ares.evaluation/stack out err)
+       ;; Jump to specific position only when there is something to print
+       (when (or out err value)
+         (goto-char (point-max)))
 
-         (when (member "need-input" status)
-           (arei--send-stdin))
-         (when out
-           (insert out))
-         (when err
-           (insert (propertize err 'face
-                               '((t (:inherit font-lock-warning-face))))))
+       (when (member "need-input" status)
+         (arei--send-stdin))
+       (when out
+         (insert out))
+       (when err
+         (insert (propertize err 'face
+                             '((t (:inherit font-lock-warning-face))))))
 
-         (funcall handle-response response)
+       (funcall handle-response response)
 
-         (when ares.evaluation/stack
-           (arei-show-debugger err ares.evaluation/stack))
+       (when ares.evaluation/stack
+         (arei-show-debugger err ares.evaluation/stack))
 
-         (when (get-buffer-window)
-           (set-window-point (get-buffer-window) (buffer-size))))))))
+       (when (get-buffer-window)
+         (set-window-point (get-buffer-window) (buffer-size)))))))
 
 (defun arei-testing-run ()
   (interactive)
