@@ -85,8 +85,6 @@
          (when out
            (insert out))
          (when err
-           (with-current-buffer connection-buffer
-             (setq arei--last-error err))
            (insert (propertize err 'face
                                '((t (:inherit font-lock-warning-face))))))
 
