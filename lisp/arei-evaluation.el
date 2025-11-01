@@ -29,6 +29,7 @@
 (require 'arei-nrepl)
 (require 'arei-ui)
 (require 'arei-debugger)
+(autoload 'ansi-color-apply "ansi-color")
 
 (eval-when-compile (require 'map))
 (eval-when-compile (require 'pcase))
@@ -58,7 +59,9 @@
          (when (member "need-input" status)
            (arei--send-stdin))
          (when out
-           (insert out))
+           (insert (if arei-client-ansi-out
+                       (ansi-color-apply out)
+                     out)))
          (when err
            (insert (propertize err 'face
                                '((t (:inherit font-lock-warning-face))))))
