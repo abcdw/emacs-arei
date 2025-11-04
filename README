@@ -72,7 +72,7 @@ the following snippets to your Emacs configuration:
     :custom (geiser-mode-auto-p nil))
   (use-package arei
     :when (locate-library "arei.el")
-    :config (global-arei-mode))
+    :init (global-arei-mode))
 #+end_src
 
 ** Connecting to a server
