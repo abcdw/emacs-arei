@@ -49,8 +49,10 @@ and responses.")
 (defvar arei-client--sesman-session-cache (make-hash-table :test 'equal)
   "Session cache for `arei-connection-buffer'.")
 
-(defvar arei-client-ansi-out nil
-  "Whether `ansi-color-apply' should be executed when printing out.")
+(defcustom arei-client-ansi-out t
+  "Whether `ansi-color-apply' should be executed when printing out."
+  :type 'boolean
+  :group 'arei)
 
 
 ;;;
