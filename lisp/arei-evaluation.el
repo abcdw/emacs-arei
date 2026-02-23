@@ -94,11 +94,13 @@
            (set-window-point (get-buffer-window) (buffer-size))))))))
 
 (defun arei--process-user-eval-print-to-comment-callback
-    (source-buffer connection-buffer &optional expression-end)
+    (source-buffer connection-buffer &optional expression-end indent)
   "Like `arei--process-user-eval-response-callback', but also inserts
-result as a comment in SOURCE-BUFFER."
+result as a comment in SOURCE-BUFFER.  INDENT is the whitespace
+prefix to align comments with the expression."
   (let ((base-callback (arei--process-user-eval-response-callback
                         connection-buffer expression-end))
+        (indent (or indent ""))
         (vals nil))
     (lambda (response)
       (funcall base-callback response)
@@ -111,7 +113,8 @@ result as a comment in SOURCE-BUFFER."
            (let* ((comment-value
                    (lambda (v)
                      (replace-regexp-in-string
-                      "\n" "\n;;    " (concat ";; => " v))))
+                      "\n" (concat "\n" indent ";;    ")
+                      (concat indent ";; => " v))))
                   (result (or (and (member "multiple-values" status)
                                    (when vals
                                      (mapconcat
@@ -133,6 +136,9 @@ result as a comment in SOURCE-BUFFER."
                (code (or code
                          (buffer-substring-no-properties start end)))
                (source-buffer (current-buffer))
+               (indent (and start (save-excursion
+                                    (goto-char start)
+                                    (make-string (current-column) ?\s))))
                (request (arei-nrepl-dict
                          "op" "eval"
                          "code" code
@@ -148,7 +154,7 @@ result as a comment in SOURCE-BUFFER."
     (arei-client-send-request
      request
      (arei--process-user-eval-print-to-comment-callback
-      source-buffer (current-buffer) end)
+      source-buffer (current-buffer) end indent)
      (arei--user-evaluation-session-id))))
 
 (defun arei--request-user-eval (code &optional bounds)
