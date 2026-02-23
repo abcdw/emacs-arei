@@ -93,6 +93,64 @@
          (when (get-buffer-window)
            (set-window-point (get-buffer-window) (buffer-size))))))))
 
+(defun arei--process-user-eval-print-to-comment-callback
+    (source-buffer connection-buffer &optional expression-end)
+  "Like `arei--process-user-eval-response-callback', but also inserts
+result as a comment in SOURCE-BUFFER."
+  (let ((base-callback (arei--process-user-eval-response-callback
+                        connection-buffer expression-end))
+        (vals nil))
+    (lambda (response)
+      (funcall base-callback response)
+      (pcase response
+        ((map status value)
+         (when (and (member "multiple-values" status)
+                    (not (member "done" status)))
+           (push value vals))
+         (when (member "done" status)
+           (let* ((comment-value
+                   (lambda (v)
+                     (replace-regexp-in-string
+                      "\n" "\n;;    " (concat ";; => " v))))
+                  (result (or (and (member "multiple-values" status)
+                                   (when vals
+                                     (mapconcat
+                                      comment-value
+                                      (reverse vals) "\n")))
+                              (and value (funcall comment-value value)))))
+             (when result
+               (with-current-buffer source-buffer
+                 (save-excursion
+                   (goto-char expression-end)
+                   (end-of-line)
+                   (insert "\n" result)))))))))))
+
+(defun arei--request-user-eval-print-to-comment (code &optional bounds)
+  "Like `arei--request-user-eval', but inserts result as comment."
+  (when (arei-connected-p)
+    (arei-ui-blink-region bounds))
+  (pcase-let* ((`(,start . ,end) bounds)
+               (code (or code
+                         (buffer-substring-no-properties start end)))
+               (source-buffer (current-buffer))
+               (request (arei-nrepl-dict
+                         "op" "eval"
+                         "code" code
+                         "file" (buffer-file-name))))
+    (when-let* ((module (arei-current-module)))
+      (arei-nrepl-dict-put request "ns" module))
+    (when-let* ((line (and start (1- (line-number-at-pos start)))))
+      (arei-nrepl-dict-put request "line" line))
+    (when-let* ((column (and start (save-excursion
+                                     (goto-char start)
+                                     (current-column)))))
+      (arei-nrepl-dict-put request "column" column))
+    (arei-client-send-request
+     request
+     (arei--process-user-eval-print-to-comment-callback
+      source-buffer (current-buffer) end)
+     (arei--user-evaluation-session-id))))
+
 (defun arei--request-user-eval (code &optional bounds)
   (when (arei-connected-p)
     (arei-ui-blink-region bounds))
@@ -224,6 +282,12 @@ down to non-top level forms."
   (interactive)
   (arei--request-user-eval nil (arei-syntax-current-top-level-form)))
 
+(defun arei-evaluate-sexp-and-print-to-comment ()
+  "Evaluate last sexp and insert result as a comment below."
+  (interactive)
+  (arei--request-user-eval-print-to-comment
+   nil (arei-syntax-last-sexp-bounds)))
+
 (defun arei-evaluate-enclosing-inner-form ()
   "Evaluate nearest enclosing form, basically a list under point.
 
@@ -239,6 +303,7 @@ up to next enclosing forms."
   "C-r" #'arei-evaluate-region
   "C-t" #'arei-evaluate-enclosing-outer-form
   ":" #'arei-evaluate-sexp
+  "C-p" #'arei-evaluate-sexp-and-print-to-comment
   "C-i" #'arei-interrupt-evaluation)
 
 (provide 'arei-evaluation)
