@@ -103,7 +103,8 @@ prefix to align comments with the expression."
         (indent (or indent ""))
         (vals nil))
     (lambda (response)
-      (funcall base-callback response)
+      (let ((arei-ui-show-result-p nil))
+        (funcall base-callback response))
       (pcase response
         ((map status value)
          (when (and (member "multiple-values" status)
@@ -124,6 +125,8 @@ prefix to align comments with the expression."
              (when result
                (with-current-buffer source-buffer
                  (save-excursion
+                   (arei-ui-show-result
+                    "%s" " ;; ⤵ " expression-end)
                    (goto-char expression-end)
                    (end-of-line)
                    (insert "\n" result)))))))))))
