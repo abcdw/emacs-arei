@@ -34,6 +34,13 @@
 (eval-when-compile (require 'map))
 (eval-when-compile (require 'pcase))
 
+(defcustom arei-evaluation-print-to-comment-style 'text
+  "Comment style for `arei-evaluate-sexp-and-print-to-comment'.
+`text' uses ;; line comments, `datum' uses #; datum comments."
+  :type '(choice (const :tag ";; text comment" text)
+                 (const :tag "#; datum comment" datum))
+  :group 'arei)
+
 (defun arei--send-stdin ()
   (arei-client-send-request
    (arei-nrepl-dict
@@ -111,22 +118,29 @@ prefix to align comments with the expression."
                     (not (member "done" status)))
            (push value vals))
          (when (member "done" status)
-           (let* ((comment-value
-                   (lambda (v)
-                     (replace-regexp-in-string
-                      "\n" (concat "\n" indent ";;    ")
-                      (concat indent ";; => " v))))
+           (let* ((datum-p (eq arei-evaluation-print-to-comment-style 'datum))
+                  (comment-value
+                   (if datum-p
+                       (lambda (v)
+                         (replace-regexp-in-string
+                          "\n" (concat "\n" indent "  ")
+                          (concat indent "#;" v)))
+                     (lambda (v)
+                       (replace-regexp-in-string
+                        "\n" (concat "\n" indent ";;    ")
+                        (concat indent ";; => " v)))))
                   (result (or (and (member "multiple-values" status)
                                    (when vals
                                      (mapconcat
                                       comment-value
                                       (reverse vals) "\n")))
-                              (and value (funcall comment-value value)))))
+                              (and value (funcall comment-value value))))
+                  (indicator (if datum-p " #; ⤵ " " ;; ⤵ ")))
              (when result
                (with-current-buffer source-buffer
                  (save-excursion
                    (arei-ui-show-result
-                    "%s" " ;; ⤵ " expression-end)
+                    "%s" indicator expression-end)
                    (goto-char expression-end)
                    (end-of-line)
                    (insert "\n" result)))))))))))
