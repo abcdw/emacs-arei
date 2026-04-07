@@ -41,6 +41,16 @@
                  (const :tag "#; datum comment" datum))
   :group 'arei)
 
+(defun arei--insert-with-carriage-motion (text)
+  "Insert TEXT, processing \\r as terminal carriage return."
+  (let ((parts (split-string text "\r")))
+    (insert (car parts))
+    (dolist (part (cdr parts))
+      (if (and (> (length part) 0) (eq (aref part 0) ?\n))
+          (insert part)
+        (delete-region (line-beginning-position) (point))
+        (insert part)))))
+
 (defun arei--send-stdin ()
   (arei-client-send-request
    (arei-nrepl-dict
@@ -66,9 +76,10 @@
          (when (member "need-input" status)
            (arei--send-stdin))
          (when out
-           (insert (if arei-client-ansi-out
-                       (ansi-color-apply out)
-                     out)))
+           (arei--insert-with-carriage-motion
+            (if arei-client-ansi-out
+                (ansi-color-apply out)
+              out)))
          (when err
            (insert (propertize err 'face
                                '((t (:inherit font-lock-warning-face))))))
