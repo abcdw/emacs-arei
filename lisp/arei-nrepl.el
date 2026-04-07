@@ -268,7 +268,7 @@ object is a root list or dict."
         (goto-char end)
         ;; normalise any platform-specific newlines
         (let* ((original (buffer-substring-no-properties beg end))
-               (result (replace-regexp-in-string "\r\n\\|\n\r\\|\r" "\n" original)))
+               (result (replace-regexp-in-string "\r\n\\|\n\r" "\n" original)))
           (cons nil (arei-nrepl--push result stack))))))
    ;; integer
    ((looking-at "i\\(-?[0-9]+\\)e")
