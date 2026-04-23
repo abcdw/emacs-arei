@@ -8,6 +8,8 @@ The long lines are not hard-wrapped.  Use softwrapping in your editor for readin
 
 ## [Unreleased]
 
+## [0.9.7] - 2026-04-23
+
 ### Added
 - Add `arei-logging` module for nREPL message logging.
 - Add `arei-testing` module with test runner, progress reporting via minibuffer, interactive filtering, `arei-testing-load-project-tests`, and `arei-testing-load-module-tests` commands.
@@ -50,6 +52,7 @@ The long lines are not hard-wrapped.  Use softwrapping in your editor for readin
 ## [0.9.0] - 2023-12-04
 
 [Unreleased]: https://git.sr.ht/~abcdw/emacs-arei
+[0.9.7]: https://git.sr.ht/~abcdw/emacs-arei/refs/0.9.7
 [0.9.6]: https://git.sr.ht/~abcdw/emacs-arei/refs/0.9.6
 [0.9.5]: https://git.sr.ht/~abcdw/emacs-arei/refs/0.9.5
 [0.9.4]: https://git.sr.ht/~abcdw/emacs-arei/refs/0.9.4
